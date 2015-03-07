@@ -1,0 +1,27 @@
+{
+    "name": "c33s/construction-kit-bundle",
+    "type": "symfony-bundle",
+    "description": "Attach files to any (Propel) object using Symfony2",
+    "homepage": "https://github.com/vworldat/ConstructionKitBundle",
+    "license": [
+        "MIT"
+    ],
+    "authors": [
+        {
+            "name": "David",
+            "email": "office@web-emerge.com",
+            "homepage": "http://web-emerge.com/"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "C33s\\ConstructionKitBundle\\": ""
+        }
+    },
+    "minimum-stability": "stable",
+    "require": {
+        "php": ">=5.4.0",
+        "symfony/symfony": "~2.3",
+        "symfony/monolog-bundle": "~2.4"
+    }
+}
