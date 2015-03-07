@@ -1,0 +1,10 @@
+parameters:
+    c33s_construction_kit.config_handler.class: C33s\ConstructionKitBundle\Config\ConfigHandler
+
+services:
+    c33s_construction_kit.config_handler:
+        class: "%c33s_construction_kit.config_handler.class%"
+        arguments:
+            - "%kernel.root_dir%"
+        calls:
+            - [ setLogger, [ "@logger" ]]
