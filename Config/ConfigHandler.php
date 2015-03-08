@@ -2,8 +2,6 @@
 
 namespace C33s\ConstructionKitBundle\Config;
 
-use Symfony\Component\HttpKernel\KernelInterface;
-use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Yaml\Yaml;
 
@@ -11,7 +9,7 @@ use Symfony\Component\Yaml\Yaml;
  * This class is used to handle the Symfony config files in a more structured way.
  *
  */
-class ConfigHandler implements LoggerAwareInterface
+class ConfigHandler
 {
     /**
      *
@@ -19,13 +17,17 @@ class ConfigHandler implements LoggerAwareInterface
      */
     protected $kernelRootDir;
 
+    /**
+     *
+     * @var LoggerInterface
+     */
     protected $logger;
 
-    protected $suffixes = array(
+    protected $environments = array(
         '',
-        '_dev',
-        '_prod',
-        '_test',
+        'dev',
+        'prod',
+        'test',
     );
 
     protected $filesToWrite = array();
@@ -42,21 +44,20 @@ class ConfigHandler implements LoggerAwareInterface
      *
      * @param string $rootDir   Kernel root dir
      */
-    public function __construct($kernelRootDir)
+    public function __construct($kernelRootDir, LoggerInterface $logger)
     {
         $this->kernelRootDir = $kernelRootDir;
+        $this->logger = $logger;
+
         $this->yamlModifier = new YamlModifier();
     }
 
-    /**
-     * Sets a logger instance on the object
-     *
-     * @param LoggerInterface $logger
-     * @return null
-     */
-    public function setLogger(LoggerInterface $logger)
+    public function addEnvironment($environment)
     {
-        $this->logger = $logger;
+        if (!in_array($environment, $this->environments))
+        {
+            $this->environments[] = $environment;
+        }
     }
 
     /**
@@ -73,19 +74,24 @@ class ConfigHandler implements LoggerAwareInterface
         return $this->kernelRootDir.'/config/';
     }
 
-    protected function getImporterFolderName($suffix)
+    protected function getConfigFile($environment)
     {
-        return 'config'.str_replace('_', '.', $suffix).'/';
+        return $this->getBaseConfigFolder().rtrim('config_'.$environment, '_').'.yml';
     }
 
-    protected function getImporterFile($suffix)
+    protected function getImporterFolderName($environment)
     {
-        return $this->getBaseConfigFolder().$this->getImporterFolderName($suffix).'_importer.yml';
+        return rtrim('config.'.$environment, '.').'/';
     }
 
-    public function getModuleFile($module, $suffix = '')
+    protected function getImporterFile($environment)
     {
-        return $this->getBaseConfigFolder().$this->getImporterFolderName($suffix).$module.'.yml';
+        return $this->getBaseConfigFolder().$this->getImporterFolderName($environment).'_importer.yml';
+    }
+
+    public function getModuleFile($module, $environment = '')
+    {
+        return $this->getBaseConfigFolder().$this->getImporterFolderName($environment).$module.'.yml';
     }
 
     protected function initConfigs()
@@ -96,19 +102,19 @@ class ConfigHandler implements LoggerAwareInterface
         }
 
         $this->logger->info("Checking and initializing config files");
-        foreach ($this->suffixes as $suffix)
+        foreach ($this->environments as $environment)
         {
-            $this->initConfig($suffix);
+            $this->initConfig($environment);
         }
 
         $this->isInitialized = true;
     }
 
-    protected function initConfig($suffix)
+    protected function initConfig($environment)
     {
-        $this->logger->debug("Initializing $suffix config");
+        $this->logger->debug("Initializing $environment config");
 
-        $configFile = $this->kernelRootDir.'/config/config'.$suffix.'.yml';
+        $configFile = $this->getConfigFile($environment);
         if (!file_exists($configFile))
         {
             $this->logger->warning("Could not find $configFile");
@@ -116,7 +122,7 @@ class ConfigHandler implements LoggerAwareInterface
             return;
         }
 
-        $folderName = $this->getImporterFolderName($suffix);
+        $folderName = $this->getImporterFolderName($environment);
         $folder = $this->getBaseConfigFolder().$folderName;
         if (!is_dir($folder))
         {
@@ -135,9 +141,9 @@ class ConfigHandler implements LoggerAwareInterface
                 continue;
             }
 
-            if (!$this->checkCanCreateModuleConfig($module, $suffix))
+            if (!$this->checkCanCreateModuleConfig($module, $environment))
             {
-                throw new \RuntimeException("Cannot move config module '{$module}' from file config/config{$suffix}.yml to file config/{$folderName}{$module}.yml because it already exists and contains YAML data. Please clean up manually and retry.");
+                throw new \RuntimeException("Cannot move config module '{$module}' from file config/config_{$environment}.yml to file config/{$folderName}{$module}.yml because it already exists and contains YAML data. Please clean up manually and retry.");
             }
         }
 
@@ -149,7 +155,7 @@ class ConfigHandler implements LoggerAwareInterface
                 continue;
             }
 
-            $this->addModuleConfig($module, $data['content'], $suffix);
+            $this->addModuleConfig($module, $data['content'], $environment);
         }
 
         $data = array(
@@ -167,14 +173,14 @@ class ConfigHandler implements LoggerAwareInterface
     }
 
     /**
-     * Check if the config for the given module name and suffix can safely be created.
+     * Check if the config for the given module name and environment can safely be created.
      *
      * @param string $module
-     * @param string $suffix
+     * @param string $environment
      */
-    protected function checkCanCreateModuleConfig($module, $suffix = '')
+    protected function checkCanCreateModuleConfig($module, $environment = '')
     {
-        $targetFile = $this->getModuleFile($module, $suffix);
+        $targetFile = $this->getModuleFile($module, $environment);
         if (file_exists($targetFile))
         {
             $content = Yaml::parse(file_get_contents($targetFile));
@@ -189,23 +195,23 @@ class ConfigHandler implements LoggerAwareInterface
     }
 
     /**
-     * Add the given content as {$module}.yml into the config folder for the given suffix.
+     * Add the given content as {$module}.yml into the config folder for the given environment.
      *
      * @param string $module
      * @param string $yamlContent
-     * @param string $suffix
+     * @param string $environment
      */
-    public function addModuleConfig($module, $yamlContent, $suffix = '')
+    public function addModuleConfig($module, $yamlContent, $environment = '')
     {
-        if (!$this->checkCanCreateModuleConfig($module, $suffix))
+        if (!$this->checkCanCreateModuleConfig($module, $environment))
         {
-            throw new \RuntimeException("Cannot move config module '{$module}' for suffix $suffix because the target file already exists and contains YAML data. Please clean up manually and retry.");
+            throw new \RuntimeException("Cannot move config module '{$module}' for environment $environment because the target file already exists and contains YAML data. Please clean up manually and retry.");
         }
 
-        $this->logger->debug("Adding module $module to $suffix config importer");
-        $this->yamlModifier->addImportFilenameToImporterFile($this->getImporterFile($suffix), $module.'.yml');
+        $this->logger->debug("Adding module $module to $environment config importer");
+        $this->yamlModifier->addImportFilenameToImporterFile($this->getImporterFile($environment), $module.'.yml');
 
-        $targetFile = $this->getModuleFile($module, $suffix);
+        $targetFile = $this->getModuleFile($module, $environment);
         if (file_exists($targetFile))
         {
             $this->logger->debug("File $targetFile exists, appending existing content");

@@ -21,7 +21,8 @@
     "minimum-stability": "stable",
     "require": {
         "php": ">=5.4.0",
-        "symfony/symfony": "~2.3",
-        "symfony/monolog-bundle": "~2.4"
+        "c33s/composer-construction-kit-installer": "dev-master",
+        "symfony/monolog-bundle": "~2.4",
+        "symfony/symfony": "~2.3"
     }
 }

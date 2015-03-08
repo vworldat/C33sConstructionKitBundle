@@ -6,16 +6,13 @@ use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class RefreshConfigCommand extends ContainerAwareCommand
+class UpdateBlocksListCommand extends ContainerAwareCommand
 {
     protected function configure()
     {
         $this
-            ->setName('c33s:construction-kit:refresh-config')
-            ->setDescription('Initialize or refresh the C33sConstructionKitBundle config')
-            ->setAliases(array(
-                'c33s:config:refresh',
-            ))
+            ->setName('c33s:construction-kit:update-blocks')
+            ->setDescription('Update the building blocks list based on the auto-generated C33sBuildingBlocksList class')
         ;
     }
 
@@ -27,6 +24,6 @@ class RefreshConfigCommand extends ContainerAwareCommand
             $output->setVerbosity(OutputInterface::VERBOSITY_VERBOSE);
         }
 
-        $this->getContainer()->get('c33s_construction_kit.config_handler')->refresh();
+        //$this->getContainer()->get('c33s_construction_kit.config_handler')->refresh();
     }
 }
