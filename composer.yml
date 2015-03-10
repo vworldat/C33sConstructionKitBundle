@@ -19,7 +19,8 @@ minimum-stability: stable
 require:
     php:                                        '>=5.4.0'
 
-    c33s/composer-construction-kit-installer:   'dev-master'
+    c33s/composer-construction-kit-installer:   '~0.1.0'
 
     symfony/monolog-bundle:                     '~2.4'
     symfony/symfony:                            '~2.3'
+    sensio/generator-bundle:                    '~2.3'

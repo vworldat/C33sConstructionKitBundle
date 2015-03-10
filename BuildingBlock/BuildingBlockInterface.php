@@ -7,24 +7,25 @@ use Symfony\Component\HttpKernel\KernelInterface;
 interface BuildingBlockInterface
 {
     /**
-     * Building blocks need a Kernel instance to work.
-     *
-     * @param KernelInterface $kernel
-     */
-    public function __construct(KernelInterface $kernel);
-
-    /**
      * Return true if this block should be installed automatically as soon as it is registered (e.g. using composer).
+     * This is the only public method that should not rely on a previously injected Kernel.
      *
      * @return boolean
      */
     public function isAutoInstall();
 
     /**
+     * Building blocks need a Kernel instance to complete most tasks, so it has to be injected whereever BuildingBlock instances are used.
+     *
+     * @param KernelInterface $kernel
+     */
+    public function setKernel(KernelInterface $kernel);
+
+    /**
      * Get the fully namespaced classes of all bundles that should be enabled to use this BuildingBlock.
      * These will be used in AppKernel.php
      *
-     * @return string[]
+     * @return array
      */
     public function getBundleClasses();
 

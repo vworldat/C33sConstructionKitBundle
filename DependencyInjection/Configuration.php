@@ -4,6 +4,7 @@ namespace C33s\ConstructionKitBundle\DependencyInjection;
 
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
+use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 
 /**
  * This is the class that validates and merges configuration from your app/config files
@@ -20,9 +21,47 @@ class Configuration implements ConfigurationInterface
         $treeBuilder = new TreeBuilder();
         $rootNode = $treeBuilder->root('c33s_construction_kit');
 
-        // Here you should define the parameters that are allowed to
-        // configure your bundle. See the documentation linked above for
-        // more information on that topic.
+        $rootNode
+            ->fixXmlConfig('config_environment')
+            ->children()
+                ->arrayNode('config_environments')
+                    ->prototype('scalar')
+                    ->end()
+                    ->defaultValue(array('', 'dev', 'prod', 'test'))
+                ->end()
+                ->arrayNode('composer_building_blocks')
+                    ->defaultValue(array())
+                    ->useAttributeAsKey('package')
+                    // required because otherwise symfony replaces dashes in package names with underscores
+                    ->normalizeKeys(false)
+                    ->prototype('array')
+                        ->prototype('scalar')
+                        ->end()
+                    ->end()
+                ->end()
+                ->arrayNode('building_blocks_map')
+                    ->useAttributeAsKey('class')
+                    ->prototype('array')
+                        ->canBeEnabled()
+                        ->children()
+                            ->booleanNode('use_config')
+                                ->defaultValue(true)
+                            ->end()
+                            ->booleanNode('use_assets')
+                                ->defaultValue(true)
+                            ->end()
+                        ->end()
+                    ->end()
+                ->end()
+                ->arrayNode('asset_map')
+                    ->useAttributeAsKey('group')
+                    ->prototype('array')
+                        ->prototype('scalar')
+                        ->end()
+                    ->end()
+                ->end()
+            ->end()
+        ;
 
         return $treeBuilder;
     }

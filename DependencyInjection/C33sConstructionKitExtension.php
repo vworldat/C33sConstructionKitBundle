@@ -24,5 +24,8 @@ class C33sConstructionKitExtension extends Extension
 
         $loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
         $loader->load('construction-kit.yml');
+
+        $container->setParameter('c33s_construction_kit.building_blocks.composer', $config['composer_building_blocks']);
+        $container->setParameter('c33s_construction_kit.building_blocks.map', $config['building_blocks_map']);
     }
 }

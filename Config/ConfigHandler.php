@@ -112,7 +112,7 @@ class ConfigHandler
 
     protected function initConfig($environment)
     {
-        $this->logger->debug("Initializing $environment config");
+        $this->logger->debug("Initializing '$environment' config");
 
         $configFile = $this->getConfigFile($environment);
         if (!file_exists($configFile))
@@ -147,6 +147,8 @@ class ConfigHandler
             }
         }
 
+        $this->logger->debug("Found ".count($modules)." modules inside config file: ".implode(', ', array_keys($modules)));
+
         $this->logger->debug("Adding modules to separated config files");
         foreach ($modules as $module => $data)
         {
@@ -178,7 +180,7 @@ class ConfigHandler
      * @param string $module
      * @param string $environment
      */
-    protected function checkCanCreateModuleConfig($module, $environment = '')
+    public function checkCanCreateModuleConfig($module, $environment = '')
     {
         $targetFile = $this->getModuleFile($module, $environment);
         if (file_exists($targetFile))
@@ -197,22 +199,22 @@ class ConfigHandler
     /**
      * Add the given content as {$module}.yml into the config folder for the given environment.
      *
+     * @throws \RuntimeException if there is an existing config file with the same name and $overwriteExisting is false
+     *
      * @param string $module
      * @param string $yamlContent
      * @param string $environment
+     * @param boolean $overwriteExisting     If set to true, existing YAML files will be overwritten
      */
-    public function addModuleConfig($module, $yamlContent, $environment = '')
+    public function addModuleConfig($module, $yamlContent, $environment = '', $overwriteExisting = false)
     {
-        if (!$this->checkCanCreateModuleConfig($module, $environment))
+        if (!$overwriteExisting && !$this->checkCanCreateModuleConfig($module, $environment))
         {
-            throw new \RuntimeException("Cannot move config module '{$module}' for environment $environment because the target file already exists and contains YAML data. Please clean up manually and retry.");
+            throw new \RuntimeException("Cannot add config module '{$module}' for environment $environment because the target file already exists and contains YAML data. Please clean up manually and retry.");
         }
 
-        $this->logger->debug("Adding module $module to $environment config importer");
-        $this->yamlModifier->addImportFilenameToImporterFile($this->getImporterFile($environment), $module.'.yml');
-
         $targetFile = $this->getModuleFile($module, $environment);
-        if (file_exists($targetFile))
+        if (!$overwriteExisting && file_exists($targetFile))
         {
             $this->logger->debug("File $targetFile exists, appending existing content");
             $yamlContent .= "\n".file_get_contents($targetFile);
@@ -222,5 +224,33 @@ class ConfigHandler
 
         $this->logger->debug("Writing $targetFile");
         file_put_contents($targetFile, $yamlContent);
+
+        $this->enableModuleConfig($module, $environment);
+    }
+
+    /**
+     * Enable the module config inside the _importer.yml file for the given environment
+     *
+     * @throws \RuntimeException if the file to enable importing does not exist.
+     *
+     * @param string $module
+     * @param string $environment
+     */
+    public function enableModuleConfig($module, $environment = '')
+    {
+        $targetFile = $this->getModuleFile($module, $environment);
+        if (!file_exists($targetFile))
+        {
+            throw new \RuntimeException("Cannot enable importer for {$module}.yml while file does not exist.");
+        }
+
+        if ($this->yamlModifier->addImportFilenameToImporterFile($this->getImporterFile($environment), $module.'.yml'))
+        {
+            $this->logger->info("Added module '$module' to '$environment' config importer");
+        }
+        else
+        {
+            $this->logger->debug("Module '$module' for '$environment' already exists in config importer");
+        }
     }
 }

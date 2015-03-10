@@ -43,28 +43,44 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
     protected $assets;
 
     /**
-     * Building blocks need a Kernel instance to work.
+     * Building blocks need a Kernel instance to complete most tasks.
      *
      * @param KernelInterface $kernel
      */
-    public function __construct(KernelInterface $kernel)
+    public function setKernel(KernelInterface $kernel)
     {
         $this->kernel = $kernel;
     }
 
     /**
+     * @return KernelInterface
+     */
+    protected function getKernel()
+    {
+        if (null === $this->kernel)
+        {
+            throw new \LogicException('Please inject a KernelInterface instance using setKernel() before using this method.');
+        }
+
+        return $this->kernel;
+    }
+
+    /**
      * Return true if this block should be installed automatically as soon as it is registered (e.g. using composer).
+     * This is the only public method that should not rely on a previously injected Kernel.
      *
      * @return boolean
      */
     public function isAutoInstall()
     {
-        return true;
+        return false;
     }
 
     /**
      * Get the bundle holding resources used by this block.
      * By default the first bundle from the list of bundles to activate is used.
+     *
+     * Does not rely on setKernel()
      *
      * @return string  The bundle name (e.g. "C33sConstructionKitBundle")
      */
@@ -133,7 +149,7 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
     {
         try
         {
-            $dir = $this->kernel->locateResource('@'.$this->getMainBundle().'/'.$dirName);
+            $dir = $this->getKernel()->locateResource('@'.$this->getMainBundle().'/'.$dirName);
         }
         catch (\InvalidArgumentException $e)
         {
@@ -193,7 +209,7 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
             'Resources/non-public/'.$this->getPathSuffix().'/',
         );
 
-        $baseDir = $this->kernel->locateResource('@'.$this->getMainBundle());
+        $baseDir = $this->getKernel()->locateResource('@'.$this->getMainBundle());
         $assets = array();
         foreach ($searchIn as $searchDir)
         {
