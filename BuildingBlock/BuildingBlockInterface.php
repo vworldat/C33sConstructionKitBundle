@@ -30,23 +30,33 @@ interface BuildingBlockInterface
     public function getBundleClasses();
 
     /**
-     * Get default config files to include automatically, grouped by environment ('default', 'dev', 'prod', ..).
-     * Each environment group should return an array of bundle resource strings (@Bundle/Resources/..)
+     * Get default config files to include automatically by environment ('default', 'dev', 'prod', ..).
+     * Return an array containing full file paths indexed by bundle-notation file paths:
+     * [
+     *     '@MyBundle/Resources/config/defaults/my.yml' => '/path/to/my/project/src/My/MyBundle/Resources/config/defaults/my.yml',
+     * ]
+     *
+     * @param $environment  The config environment to use ('', 'dev', 'prod', ...)
      *
      * @return array
      */
-    public function getDefaultConfigs();
+    public function getDefaultConfigs($environment = '');
 
     /**
-     * Get config.yml sections to add to the project config, grouped by environment ('default', 'dev', 'prod', ..).
-     * Each environment group should return an array of bundle resource strings (@Bundle/Resources/..)
+     * Get sample / pre-filled config to include editable by environment ('default', 'dev', 'prod', ..).
+     * Return an array containing full file paths indexed by bundle-notation file paths:
+     * [
+     *     '@MyBundle/Resources/config/templates/my.yml' => '/path/to/my/project/src/My/MyBundle/Resources/config/templates/my.yml',
+     * ]
      *
      * Each section that is included in getDefaultConfigs() but not in the templates will be pre-generated using a
      * commented copy of the default config.
      *
+     * @param $environment  The config environment to use ('', 'dev', 'prod', ...)
+     *
      * @return array
      */
-    public function getConfigTemplates();
+    public function getConfigTemplates($environment = '');
 
     /**
      * Return all assets that can be added automatically by this BuildingBlock. Return array grouped by asset type.

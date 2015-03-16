@@ -6,12 +6,13 @@ use C33s\ConstructionKitBundle\Config\ConfigHandler;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Yaml\Yaml;
+use C33s\ConstructionKitBundle\Manipulator\KernelManipulator;
 
 class BuildingBlockHandler
 {
     /**
      *
-     * @var string
+     * @var KernelInterface
      */
     protected $kernel;
 
@@ -39,17 +40,20 @@ class BuildingBlockHandler
 
     protected $blocksToEnable = array();
 
+    protected $environments;
+
     /**
      *
      * @param string $rootDir   Kernel root dir
      */
-    public function __construct(KernelInterface $kernel, LoggerInterface $logger, ConfigHandler $configHandler, $composerBuildingBlocks, $blocksMap)
+    public function __construct(KernelInterface $kernel, LoggerInterface $logger, ConfigHandler $configHandler, $composerBuildingBlocks, $blocksMap, array $environments)
     {
         $this->kernel = $kernel;
         $this->logger = $logger;
         $this->configHandler = $configHandler;
         $this->composerBuildingBlockClasses = $composerBuildingBlocks;
         $this->existingBlocksMap = $blocksMap;
+        $this->environments = $environments;
     }
 
     public function addBuildingBlock(BuildingBlockInterface $block)
@@ -62,7 +66,7 @@ class BuildingBlockHandler
         $this->loadComposerBuildingBlocks();
         $newMap = $this->detectChanges();
         $this->activateBlocks($newMap);
-        $this->saveMap($newMap);
+        $this->saveBlocksMap($newMap);
     }
 
     /**
@@ -133,13 +137,15 @@ class BuildingBlockHandler
         foreach ($newMap as $class => $settings)
         {
             $block = $this->getBlock($class);
+            $block->setKernel($this->kernel);
 
-            if (!$settings['enabled'])
+            if (!$settings['enabled'] && $this->wasEnabled($class))
             {
-                if (isset($this->existingBlocksMap[$class]['enabled']) && !$this->existingBlocksMap[$class]['enabled'])
-                {
-                    $this->disableBlock($block);
-                }
+                $this->disableBlock($block);
+            }
+            elseif ($settings['enabled'])
+            {
+                $this->enableBlock($block, $settings['use_config'], $settings['use_assets']);
             }
         }
     }
@@ -173,7 +179,141 @@ class BuildingBlockHandler
 
     }
 
-    protected function saveMap(array $newMap)
+    /**
+     * Enable a building block.
+     *
+     * @param BuildingBlockInterface $block
+     */
+    protected function enableBlock(BuildingBlockInterface $block, $useConfig, $useAssets)
+    {
+        $info = $this->getBlockInfo($block);
+        $this->enableBundles($info['bundle_classes']);
+
+        if ($useConfig)
+        {
+            $usedModules = array();
+            foreach ($info['config_templates'] as $env => $templates)
+            {
+                foreach ($templates as $relative => $template)
+                {
+                    $module = basename($template, '.yml');
+                    if ($this->configHandler->checkCanCreateModuleConfig($module, $env, false))
+                    {
+                        $content = file_get_contents($template);
+                        $this->configHandler->addModuleConfig($module, $content, $env);
+                    }
+
+                    $usedModules[$env][$module] = true;
+                }
+            }
+
+            foreach ($info['default_configs'] as $env => $defaults)
+            {
+                foreach ($defaults as $relative => $default)
+                {
+                    $module = basename($default, '.yml');
+                    $this->configHandler->addDefaultsImport($relative, $env);
+
+                    if (!isset($usedModules[$env][$module]) && $this->configHandler->checkCanCreateModuleConfig($module, $env))
+                    {
+                        // any modules that only use a defaults file will be provided with a commented version of the given file.
+                        $content = file_get_contents($default);
+                        $content = "#".preg_replace("/\n/", "\n#", $content);
+                        $content = "# This file was auto-generated based on ".$relative."\n# Feel free to change anything you have to.\n\n".$content;
+                        $this->configHandler->addModuleConfig($module, $content, $env, true);
+                    }
+                }
+            }
+        }
+
+        if ($useAssets)
+        {
+            foreach ($info['assets'] as $grouped)
+            {
+                foreach ($grouped as $group => $asset)
+                {
+
+                }
+            }
+        }
+    }
+
+    /**
+     * Get all block information in a single array.
+     *
+     * @param BuildingBlockInterface $block
+     * @throws \InvalidArgumentException
+     *
+     * @return array
+     */
+    public function getBlockInfo(BuildingBlockInterface $block)
+    {
+        $configTemplates = array();
+        $defaultConfigs = array();
+        $assets = array();
+        $bundleClasses = $block->getBundleClasses();
+
+        // check all the bundle classes first before adding anything anywhere
+        foreach ($bundleClasses as $bundleClass)
+        {
+            if (!class_exists($bundleClass))
+            {
+                throw new \InvalidArgumentException("Bundle class $bundleClass cannot be resolved");
+            }
+        }
+        foreach ($this->environments as $env)
+        {
+            $configTemplates[$env] = $block->getConfigTemplates($env);
+            $defaultConfigs[$env] = $block->getDefaultConfigs($env);
+        }
+
+        $assets = $block->getAssets();
+
+        return array(
+            'bundle_classes' => $bundleClasses,
+            'config_templates' => $configTemplates,
+            'default_configs' => $defaultConfigs,
+            'assets' => $assets,
+        );
+    }
+
+    /**
+     * Add the given bundle class to AppKernel.php, no matter if it is already in there or not. The KernelManipulator will take care of this.
+     *
+     * @param string $bundleClass
+     */
+    protected function enableBundles($bundleClasses)
+    {
+        try
+        {
+            $manipulator = new KernelManipulator($this->kernel);
+            $manipulator->addBundles($bundleClasses);
+
+            $this->logger->info("Adding ".implode(', ', $bundleClasses)." to AppKernel");
+        }
+        catch (\RuntimeException $e)
+        {
+        }
+    }
+
+    /**
+     * Check if the given class name was enabled in the previous configuration.
+     *
+     * @param string $class
+     *
+     * @return boolean
+     */
+    protected function wasEnabled($class)
+    {
+        return isset($this->existingBlocksMap[$class]['enabled']) && !$this->existingBlocksMap[$class]['enabled'];
+    }
+
+    /**
+     * Save building block map to specific yaml config file.
+     *
+     * @param array $newMap
+     */
+    protected function saveBlocksMap(array $newMap)
     {
         $data = array(
             'c33s_construction_kit' => array(

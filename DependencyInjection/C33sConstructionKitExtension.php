@@ -27,5 +27,6 @@ class C33sConstructionKitExtension extends Extension
 
         $container->setParameter('c33s_construction_kit.building_blocks.composer', $config['composer_building_blocks']);
         $container->setParameter('c33s_construction_kit.building_blocks.map', $config['building_blocks_map']);
+        $container->setParameter('c33s_construction_kit.environments', $config['config_environments']);
     }
 }

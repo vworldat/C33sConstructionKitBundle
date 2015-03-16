@@ -89,6 +89,11 @@ class ConfigHandler
         return $this->getBaseConfigFolder().$this->getImporterFolderName($environment).'_importer.yml';
     }
 
+    protected function getDefaultsImporterFile($environment)
+    {
+        return $this->getBaseConfigFolder().$this->getImporterFolderName($environment).'_building_block_defaults.yml';
+    }
+
     public function getModuleFile($module, $environment = '')
     {
         return $this->getBaseConfigFolder().$this->getImporterFolderName($environment).$module.'.yml';
@@ -164,6 +169,20 @@ class ConfigHandler
             'imports' => isset($modules['imports']) ? $modules['imports']['data']['imports'] : array(),
         );
 
+        if ('' == $environment)
+        {
+            // add defaults importer to default config file
+            $filename = '_building_block_defaults.yml';
+            if (!$this->yamlModifier->dataContainsImportFile($data, $filename))
+            {
+                $file = $this->getBaseConfigFolder().$filename;
+                if (!file_exists($filename))
+                {
+                    touch($filename);
+                }
+            }
+        }
+
         $filename = $folderName.'_importer.yml';
         if (!$this->yamlModifier->dataContainsImportFile($data, $filename))
         {
@@ -179,14 +198,17 @@ class ConfigHandler
      *
      * @param string $module
      * @param string $environment
+     * @param boolean $allowOverwriteEmpty  Set to false to disallow replacing files without readable YAML content
+     *
+     * @return boolean
      */
-    public function checkCanCreateModuleConfig($module, $environment = '')
+    public function checkCanCreateModuleConfig($module, $environment = '', $allowOverwriteEmpty = true)
     {
         $targetFile = $this->getModuleFile($module, $environment);
         if (file_exists($targetFile))
         {
             $content = Yaml::parse(file_get_contents($targetFile));
-            if (null !== $content)
+            if (null !== $content || !$allowOverwriteEmpty)
             {
                 // there is something inside this file that parses as yaml
                 return false;
@@ -252,5 +274,21 @@ class ConfigHandler
         {
             $this->logger->debug("Module '$module' for '$environment' already exists in config importer");
         }
+    }
+
+    /**
+     * Add the given file path to the _building_block_defaults importer file.
+     *
+     * @param string $defaultsFile
+     * @param string $environment
+     */
+    public function addDefaultsImport($defaultsFile, $environment = '')
+    {
+        $defaultsImporterFile = $this->getDefaultsImporterFile($environment);
+        $importerFile = $this->getImporterFile($environment);
+        // register defaults importer in regular importer
+        $this->yamlModifier->addImportFilenameToImporterFile($importerFile, basename($defaultsImporterFile));
+        // register new remote file in defaults importer
+        $this->yamlModifier->addImportFilenameToImporterFile($defaultsImporterFile, $defaultsFile);
     }
 }

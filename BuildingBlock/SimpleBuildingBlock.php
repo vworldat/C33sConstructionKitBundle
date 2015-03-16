@@ -5,6 +5,7 @@ namespace C33s\ConstructionKitBundle\BuildingBlock;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Finder\SplFileInfo;
+use Symfony\Component\HttpKernel\Bundle\BundleInterface;
 
 abstract class SimpleBuildingBlock implements BuildingBlockInterface
 {
@@ -15,7 +16,7 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
     protected $kernel;
 
     /**
-     * Name of main bundle to use for resources.
+     * Instance of main bundle to use for resources.
      *
      * @var string
      */
@@ -26,14 +27,14 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
      *
      * @var array
      */
-    protected $defaultConfigs;
+    protected $defaultConfigs = array();
 
     /**
      * Holds config template files once detected
      *
      * @var array
      */
-    protected $configTemplates;
+    protected $configTemplates = array();
 
     /**
      * Holds asset files once detected
@@ -82,7 +83,7 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
      *
      * Does not rely on setKernel()
      *
-     * @return string  The bundle name (e.g. "C33sConstructionKitBundle")
+     * @return BundleInterface
      */
     protected function getMainBundle()
     {
@@ -91,50 +92,63 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
             return $this->mainBundle;
         }
 
-        if (!count($this->getBundleClasses()))
+        $classes = $this->getBundleClasses();
+        if (!count($classes))
         {
             throw new \RuntimeException('SimpleBuildingBlock requires you to at least define one bundle in getBundleClasses() to use as your main bundle');
         }
 
-        $class = reset($this->getBundleClasses());
-        $pos = strrpos($class, '\\');
+        $class = reset($classes);
+        $this->mainBundle = new $class();
 
-        return $this->mainBundle = (false === $pos) ? $class : substr($class, $pos + 1);
+        return $this->mainBundle;
     }
 
     /**
-     * Get default config files to include automatically, grouped by environment ('default', 'dev', 'prod', ..).
-     * Each environment group should return an array of bundle resource strings (@Bundle/Resources/..)
+     * Get default config files to include automatically by environment ('default', 'dev', 'prod', ..).
+     * Return an array containing full file paths indexed by bundle-notation file paths:
+     * [
+     *     '@MyBundle/Resources/config/defaults/my.yml' => '/path/to/my/project/src/My/MyBundle/Resources/config/defaults/my.yml',
+     * ]
+     *
+     * @param $environment  The config environment to use ('', 'dev', 'prod', ...)
      *
      * @return array
-    */
-    public function getDefaultConfigs()
+     */
+    public function getDefaultConfigs($environment = '')
     {
-        if (null === $this->defaultConfigs)
+        if (!isset($this->defaultConfigs[$environment]))
         {
-            $this->defaultConfigs = $this->findFilesInBundleDir('Resources/config/defaults/'.$this->getPathSuffix().'/', '*.yml');
+            $env = ('' === $environment) ? $environment : '.'.$environment;
+            $this->defaultConfigs[$environment] = $this->findFilesInBundleDir('Resources/config/defaults'.$env.'/'.$this->getPathSuffix().'/', '*.yml');
         }
 
-        return $this->defaultConfigs;
+        return $this->defaultConfigs[$environment];
     }
 
     /**
-     * Get config.yml sections to add to the project config, grouped by environment ('default', 'dev', 'prod', ..).
-     * Each environment group should return an array of bundle resource strings (@Bundle/Resources/..)
+     * Get sample / pre-filled config to include editable by environment ('default', 'dev', 'prod', ..).
+     * Return an array containing full file paths indexed by bundle-notation file paths:
+     * [
+     *     '@MyBundle/Resources/config/templates/my.yml' => '/path/to/my/project/src/My/MyBundle/Resources/config/templates/my.yml',
+     * ]
      *
      * Each section that is included in getDefaultConfigs() but not in the templates will be pre-generated using a
      * commented copy of the default config.
      *
+     * @param $environment  The config environment to use ('', 'dev', 'prod', ...)
+     *
      * @return array
      */
-    public function getConfigTemplates()
+    public function getConfigTemplates($environment = '')
     {
-        if (null === $this->configTemplates)
+        if (!isset($this->configTemplates[$environment]))
         {
-            $this->configTemplates = $this->findFilesInBundleDir('Resources/config/templates/'.$this->getPathSuffix().'/', '*.yml');
+            $env = '' === $environment ? $environment : '.'.$environment;
+            $this->configTemplates[$environment] = $this->findFilesInBundleDir('Resources/config/templates'.$env.'/'.$this->getPathSuffix().'/', '*.yml');
         }
 
-        return $this->configTemplates;
+        return $this->configTemplates[$environment];
     }
 
     /**
@@ -147,14 +161,16 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
      */
     protected function findFilesInBundleDir($dirName, $pattern, $depth = 0)
     {
-        try
-        {
-            $dir = $this->getKernel()->locateResource('@'.$this->getMainBundle().'/'.$dirName);
-        }
-        catch (\InvalidArgumentException $e)
+        $baseDir = $this->getMainBundleDir();
+        $bundleName = $this->getMainBundle()->getName();
+
+        $dir = $baseDir.'/'.$dirName;
+        if (!is_dir($dir))
         {
             return array();
         }
+
+        $dir = realpath($dir);
 
         $finder = Finder::create()
             ->files()
@@ -167,7 +183,8 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
         foreach ($finder as $file)
         {
             /* @var $file SplFileInfo */
-            $files[] = '@'.$this->getMainBundle().'/'.$dirName.'/'.$file->getFilename();
+            $relative = substr($file->getRealPath(), strlen($baseDir));
+            $files['@'.$bundleName.$relative] = $file->getRealPath();
         }
 
         return $files;
@@ -209,7 +226,7 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
             'Resources/non-public/'.$this->getPathSuffix().'/',
         );
 
-        $baseDir = $this->getKernel()->locateResource('@'.$this->getMainBundle());
+        $baseDir = $this->getMainBundleDir();
         $assets = array();
         foreach ($searchIn as $searchDir)
         {
@@ -237,6 +254,17 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
         }
 
         return $assets;
+    }
+
+    /**
+     * Get the directory containing the main bundle's class file.
+     * If not overwritten, reflection is used to determine this.
+     *
+     * @return string
+     */
+    protected function getMainBundleDir()
+    {
+        return $this->getMainBundle()->getPath();
     }
 
     /**

@@ -1,0 +1,5 @@
+# Use this file to configure general construction kit settings and manually add building blocks
+# Use the auto-generated block map inside c33s_construction_kit.building_blocks.yml to enable or disable individual blocks 
+c33s_construction_kit:
+    # Edit this section if you have additional main config files like config_stage.yml
+    config_environments: [ '', dev, prod, test ]
