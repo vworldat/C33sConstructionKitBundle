@@ -7,33 +7,35 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use C33s\ConstructionKitBundle\BuildingBlock\BuildingBlockHandler;
+use Symfony\Component\Console\Input\InputArgument;
 
-class UpdateBuildingBlocksCommand extends ContainerAwareCommand
+class DebugCommand extends ContainerAwareCommand
 {
     protected function configure()
     {
         $this
-            ->setName('construction-kit:update-blocks')
-            ->setDescription('Update the list of BuildingBlocks and install them automatically.')
+            ->setName('debug:construction-kit')
+            ->setDescription('Display C33sConstructionKitBundle building blocks information')
+            ->addArgument(
+                'blocks',
+                InputArgument::IS_ARRAY,
+                "List of block classes to show details for. You may use the full class names or parts of them.\nNot case-sensitive, / is allowed in place of \\"
+            )
             ->addOption(
-                'no-auto-install',
+                'details',
                 null,
                 InputOption::VALUE_NONE,
-                'Do not install new blocks automatically'
+                'Show details for all available building blocks'
             )
+            ->setAliases(array(
+                'construction-kit:debug',
+            ))
         ;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        if (OutputInterface::VERBOSITY_NORMAL == $output->getVerbosity())
-        {
-            // enforce verbose output by default
-            //$output->setVerbosity(OutputInterface::VERBOSITY_VERBOSE);
-        }
-
-        //$this->getContainer()->get('c33s_construction_kit.config_handler')->refresh();
-        $this->getBuildingBlockHandler()->updateBuildingBlocks();
+        $this->getBuildingBlockHandler()->debug($output, $input->getArgument('blocks'), $input->getOption('details'));
     }
 
     /**

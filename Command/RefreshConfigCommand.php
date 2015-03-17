@@ -13,7 +13,7 @@ class RefreshConfigCommand extends ContainerAwareCommand
     protected function configure()
     {
         $this
-            ->setName('c33s:construction-kit:refresh-config')
+            ->setName('construction-kit:refresh-config')
             ->setDescription('Initialize or refresh the C33sConstructionKitBundle config')
             ->addOption(
                 'enable-config',

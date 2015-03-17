@@ -1,6 +1,6 @@
 <?php
 
-namespace C33s\ConstructionKitBundle\DependencyInjection;
+namespace C33s\ConstructionKitBundle\DependencyInjection\Compiler;
 
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -23,7 +23,7 @@ class BuildingBlocksPass implements CompilerPassInterface
         $configuratorDef = $container->findDefinition('c33s_construction_kit.building_block_handler');
         foreach (array_keys($container->findTaggedServiceIds('c33s_building_block')) as $id)
         {
-            $configuratorDef->addMethodCall('addBuildingBlock', array(new Reference($id)));
+            $configuratorDef->addMethodCall('addBuildingBlock', array(new Reference($id), $id));
         }
     }
 }
