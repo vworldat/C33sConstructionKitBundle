@@ -18,8 +18,3 @@ services:
             - "%c33s_construction_kit.building_blocks.composer%"
             - "%c33s_construction_kit.building_blocks.map%"
             - "%c33s_construction_kit.environments%"
-
-    c33s_construction_kit.block.main:
-        class: 'C33s\ConstructionKitBundle\BuildingBlock\ConstructionKitBuildingBlock'
-        tags:
-            - { name: c33s_building_block }
