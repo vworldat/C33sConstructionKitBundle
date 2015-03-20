@@ -16,5 +16,5 @@ services:
             - "@logger"
             - "@c33s_construction_kit.config_handler"
             - "%c33s_construction_kit.building_blocks.composer%"
-            - "%c33s_construction_kit.building_blocks.map%"
+            - "%c33s_construction_kit.mapping%"
             - "%c33s_construction_kit.environments%"

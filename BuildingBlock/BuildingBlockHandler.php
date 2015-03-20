@@ -36,7 +36,8 @@ class BuildingBlockHandler
      */
     protected $composerBuildingBlockClasses;
 
-    protected $existingBlocksMap;
+    protected $existingMapping;
+    protected $newMapping;
 
     protected $buildingBlocks = array();
     protected $buildingBlockSources = array();
@@ -49,13 +50,13 @@ class BuildingBlockHandler
      *
      * @param string $rootDir   Kernel root dir
      */
-    public function __construct(KernelInterface $kernel, LoggerInterface $logger, ConfigHandler $configHandler, $composerBuildingBlocks, $blocksMap, array $environments)
+    public function __construct(KernelInterface $kernel, LoggerInterface $logger, ConfigHandler $configHandler, $composerBuildingBlocks, $mapping, array $environments)
     {
         $this->kernel = $kernel;
         $this->logger = $logger;
         $this->configHandler = $configHandler;
         $this->composerBuildingBlockClasses = $composerBuildingBlocks;
-        $this->existingBlocksMap = $blocksMap;
+        $this->existingMapping = $mapping;
         $this->environments = $environments;
     }
 
@@ -73,16 +74,22 @@ class BuildingBlockHandler
 
     /**
      *
-     * @return array    Current blocks map
      */
     public function updateBuildingBlocks()
     {
         $this->loadComposerBuildingBlocks();
-        $newMap = $this->detectChanges();
-        $this->toggleBlocks($newMap);
-        $this->saveBlocksMap($newMap);
+        $this->toggleBlocks();
+        $this->saveBlocksMap();
+    }
 
-        return $newMap;
+    protected function getMapping()
+    {
+        if (null === $this->newMapping)
+        {
+            $this->newMapping = $this->detectChanges();
+        }
+
+        return $this->newMapping;
     }
 
     /**
@@ -117,7 +124,7 @@ class BuildingBlockHandler
     }
 
     /**
-     * At this point all available blocks are collected inside $this->buildingBlocks. The existing class map is placed in $this->existingBlocksMap.
+     * At this point all available blocks are collected inside $this->buildingBlocks. The existing class map is placed in $this->existingMapping.
      * We have to detect both new and removed blocks and act accordingly.
      *
      * @return array    New blocks map
@@ -129,15 +136,15 @@ class BuildingBlockHandler
         // detect new blocks
         foreach ($this->buildingBlocks as $class => $block)
         {
-            if (array_key_exists($class, $this->existingBlocksMap))
+            if (array_key_exists($class, $this->existingMapping['building_blocks']))
             {
                 // just copy over the information
-                $newMap[$class] = $this->existingBlocksMap[$class];
+                $newMap['building_blocks'][$class] = $this->existingMapping['building_blocks'][$class];
             }
             else
             {
                 // This block does not appear in the existing map. Whether to enable it or not can be decided based on its autoInstall result.
-                $newMap[$class] = array(
+                $newMap['building_blocks'][$class] = array(
                     'enabled' => (boolean) $block->isAutoInstall(),
                     'use_config' => true,
                     'use_assets' => true,
@@ -145,16 +152,43 @@ class BuildingBlockHandler
             }
         }
 
-        ksort($newMap);
+        ksort($newMap['building_blocks']);
+        $newMap['assets'] = $this->existingMapping['assets'];
+
+        foreach ($newMap['building_blocks'] as $class => $settings)
+        {
+            $useAssets = $settings['enabled'] && $settings['use_assets'];
+
+            $block = $this->getBlock($class);
+            $assets = $block->getAssets();
+
+            foreach ($assets as $group => $grouped)
+            {
+                foreach (array_keys($grouped) as $relative)
+                {
+                    if ($useAssets && (!isset($newMap['assets'][$group][$relative]) || !$newMap['assets'][$group][$relative]))
+                    {
+                        // append assets that did not appear previously
+                        $newMap['assets'][$group][$relative] = true;
+                    }
+                    elseif (!$useAssets && isset($newMap['assets'][$group][$relative]))
+                    {
+                        // disable previously defined assets if enabled
+                        $newMap['assets'][$group][$relative] = false;
+                    }
+                }
+            }
+        }
 
         // TODO: detect removed blocks. This is actually a rare edge case since no sane person would remove a composer package without disabling its classes first. *cough*
 
         return $newMap;
     }
 
-    protected function toggleBlocks(array $newMap)
+    protected function toggleBlocks()
     {
-        foreach ($newMap as $class => $settings)
+        $newMap = $this->getMapping();
+        foreach ($newMap['building_blocks'] as $class => $settings)
         {
             // load all blocks before doing anything else.
             $block = $this->getBlock($class);
@@ -166,7 +200,7 @@ class BuildingBlockHandler
         }
 
         $bundlesToEnable = array();
-        foreach ($newMap as $class => $settings)
+        foreach ($newMap['building_blocks'] as $class => $settings)
         {
             $block = $this->getBlock($class);
             $block->setKernel($this->kernel);
@@ -262,17 +296,6 @@ class BuildingBlockHandler
             }
         }
 
-        if ($useAssets)
-        {
-            foreach ($info['assets'] as $group => $grouped)
-            {
-                foreach ($grouped as $relative => $asset)
-                {
-
-                }
-            }
-        }
-
         return $info['bundle_classes'];
     }
 
@@ -343,19 +366,17 @@ class BuildingBlockHandler
      */
     protected function wasEnabled($class)
     {
-        return isset($this->existingBlocksMap[$class]['enabled']) && !$this->existingBlocksMap[$class]['enabled'];
+        return isset($this->existingMapping['building_blocks'][$class]['enabled']) && !$this->existingMapping['building_blocks'][$class]['enabled'];
     }
 
     /**
      * Save building block map to specific yaml config file.
-     *
-     * @param array $newMap
      */
-    protected function saveBlocksMap(array $newMap)
+    protected function saveBlocksMap()
     {
         $data = array(
             'c33s_construction_kit' => array(
-                'building_blocks_map' => $newMap,
+                'mapping' => $this->getMapping(),
             ),
         );
 
@@ -380,7 +401,7 @@ class BuildingBlockHandler
 
 EOF;
 
-        $content .= Yaml::dump($data, 4);
+        $content .= Yaml::dump($data, 5);
 
         $this->configHandler->addModuleConfig('c33s_construction_kit.map', $content, '', true);
     }
@@ -388,11 +409,11 @@ EOF;
     public function debug(OutputInterface $output, array $blockClasses, $showDetails = false)
     {
         $output->writeln("Updating blocks information ...");
-        $newMap = $this->updateBuildingBlocks();
+        $this->updateBuildingBlocks();
 
-        $blockClasses = $this->filterBlockClasses($newMap, $blockClasses);
+        $blockClasses = $this->filterBlockClasses($blockClasses);
 
-        $this->doDebug($output, $newMap, $blockClasses, $showDetails);
+        $this->doDebug($output, $blockClasses, $showDetails);
     }
 
     /**
@@ -403,8 +424,9 @@ EOF;
      *
      * @return array
      */
-    protected function filterBlockClasses(array $newMap, array $blockClasses)
+    protected function filterBlockClasses(array $blockClasses)
     {
+        $newMap = $this->getMapping();
         $filtered = array();
         foreach ($blockClasses as $name)
         {
@@ -412,7 +434,7 @@ EOF;
             $nameLower = strtolower($name);
             $matches = array();
 
-            foreach (array_keys($newMap) as $class)
+            foreach (array_keys($newMap['building_blocks']) as $class)
             {
                 if ($name == $class)
                 {
@@ -444,9 +466,10 @@ EOF;
         return $filtered;
     }
 
-    protected function doDebug(OutputInterface $output, array $newMap, array $blockClasses = array(), $showDetails = false)
+    protected function doDebug(OutputInterface $output, array $blockClasses = array(), $showDetails = false)
     {
         $output->writeln("\n<info>Building blocks overview</info>");
+        $newMap = $this->getMapping();
         $table = new Table($output);
         $table
             ->setHeaders(array(
@@ -459,7 +482,7 @@ EOF;
             ))
         ;
 
-        foreach ($newMap as $class => $config)
+        foreach ($newMap['building_blocks'] as $class => $config)
         {
             $block = $this->getBlock($class);
             $table->addRow(array(
@@ -480,7 +503,7 @@ EOF;
         }
         if ($showDetails && count($blockClasses) == 0)
         {
-            $blockClasses = array_keys($newMap);
+            $blockClasses = array_keys($newMap['building_blocks']);
         }
 
         if (!$showDetails)
