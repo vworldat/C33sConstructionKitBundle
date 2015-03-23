@@ -291,4 +291,18 @@ class ConfigHandler
         // register new remote file in defaults importer
         $this->yamlModifier->addImportFilenameToImporterFile($defaultsImporterFile, $defaultsFile);
     }
+
+    /**
+     * Add a parameter to parameters.yml and parameters.yml.dist.
+     *
+     * @param string $name
+     * @param mixed $defaultValue
+     * @param string $addComment
+     */
+    public function addParameter($name, $defaultValue, $addComment = null)
+    {
+        $this->logger->info("Setting parameter $name in parameters.yml");
+        $this->yamlModifier->addParameterToFile($this->getBaseConfigFolder().'parameters.yml', $name, $defaultValue, false);
+        $this->yamlModifier->addParameterToFile($this->getBaseConfigFolder().'parameters.yml.dist', $name, $defaultValue, true, $addComment);
+    }
 }

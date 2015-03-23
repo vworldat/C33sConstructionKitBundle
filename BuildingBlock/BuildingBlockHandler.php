@@ -68,6 +68,8 @@ class BuildingBlockHandler
      */
     public function addBuildingBlock(BuildingBlockInterface $block, $setBy = '')
     {
+        $block->setKernel($this->kernel);
+
         $this->buildingBlocks[get_class($block)] = $block;
         $this->buildingBlockSources[get_class($block)] = $setBy;
     }
@@ -131,7 +133,16 @@ class BuildingBlockHandler
      */
     protected function detectChanges()
     {
-        $newMap = array();
+        $newMap = array('building_blocks' => array());
+
+        if (!array_key_exists('building_blocks', $this->existingMapping))
+        {
+            $this->existingMapping['building_blocks'] = array();
+        }
+        if (!array_key_exists('assets', $this->existingMapping))
+        {
+            $this->existingMapping['assets'] = array();
+        }
 
         // detect new blocks
         foreach ($this->buildingBlocks as $class => $block)
@@ -146,6 +157,7 @@ class BuildingBlockHandler
                 // This block does not appear in the existing map. Whether to enable it or not can be decided based on its autoInstall result.
                 $newMap['building_blocks'][$class] = array(
                     'enabled' => (boolean) $block->isAutoInstall(),
+                    'init' => true,
                     'use_config' => true,
                     'use_assets' => true,
                 );
@@ -160,6 +172,7 @@ class BuildingBlockHandler
             $useAssets = $settings['enabled'] && $settings['use_assets'];
 
             $block = $this->getBlock($class);
+            $this->getBlockInfo($block);
             $assets = $block->getAssets();
 
             foreach ($assets as $group => $grouped)
@@ -188,16 +201,6 @@ class BuildingBlockHandler
     protected function toggleBlocks()
     {
         $newMap = $this->getMapping();
-        foreach ($newMap['building_blocks'] as $class => $settings)
-        {
-            // load all blocks before doing anything else.
-            $block = $this->getBlock($class);
-            if ($settings['enabled'])
-            {
-                $block->setKernel($this->kernel);
-                $this->getBlockInfo($block);
-            }
-        }
 
         $bundlesToEnable = array();
         foreach ($newMap['building_blocks'] as $class => $settings)
@@ -205,13 +208,13 @@ class BuildingBlockHandler
             $block = $this->getBlock($class);
             $block->setKernel($this->kernel);
 
-            if (!$settings['enabled'] && $this->wasEnabled($class))
+            if ($settings['enabled'])
+            {
+                $bundlesToEnable = array_merge($bundlesToEnable, $this->enableBlock($block, $settings['use_config'], $settings['init']));
+            }
+            else
             {
                 $this->disableBlock($block);
-            }
-            elseif ($settings['enabled'])
-            {
-                $bundlesToEnable = array_merge($bundlesToEnable, $this->enableBlock($block, $settings['use_config'], $settings['use_assets']));
             }
         }
 
@@ -252,15 +255,44 @@ class BuildingBlockHandler
      * Enable a building block.
      *
      * @param BuildingBlockInterface $block
+     * @param boolean $useConfig
+     * @param boolean $init
      *
      * @return array    List of bundles to enable for this block
      */
-    protected function enableBlock(BuildingBlockInterface $block, $useConfig, $useAssets)
+    protected function enableBlock(BuildingBlockInterface $block, $useConfig, $init)
     {
         $info = $this->getBlockInfo($block);
 
+        if ($init)
+        {
+            $this->logger->info("Initializing ".get_class($block));
+            if ($useConfig)
+            {
+                $comment = 'Added by '.get_class($block).' init()';
+                foreach ($block->getInitialParameters() as $name => $defaultValue)
+                {
+                    $this->configHandler->addParameter($name, $defaultValue, $comment);
+                    $comment = null;
+                }
+            }
+
+            $block->init();
+            $this->markAsInitialized($block);
+        }
+
         if ($useConfig)
         {
+            $comment = 'Added by '.get_class($block);
+            foreach ($block->getAddParameters() as $name => $defaultValue)
+            {
+                if ($init || !$this->kernel->getContainer()->hasParameter($name))
+                {
+                    $this->configHandler->addParameter($name, $defaultValue, $comment);
+                    $comment = null;
+                }
+            }
+
             $usedModules = array();
             foreach ($info['config_templates'] as $env => $templates)
             {
@@ -299,6 +331,14 @@ class BuildingBlockHandler
         return $info['bundle_classes'];
     }
 
+    protected function markAsInitialized(BuildingBlockInterface $block)
+    {
+        $newMap = $this->getMapping();
+        $newMap['building_blocks'][get_class($block)]['init'] = false;
+
+        $this->newMapping = $newMap;
+    }
+
     /**
      * Get all block information in a single array.
      *
@@ -331,6 +371,7 @@ class BuildingBlockHandler
         $assets = $block->getAssets();
 
         return array(
+            'class' => get_class($block),
             'bundle_classes' => $bundleClasses,
             'config_templates' => $configTemplates,
             'default_configs' => $defaultConfigs,
@@ -366,7 +407,7 @@ class BuildingBlockHandler
      */
     protected function wasEnabled($class)
     {
-        return isset($this->existingMapping['building_blocks'][$class]['enabled']) && !$this->existingMapping['building_blocks'][$class]['enabled'];
+        return isset($this->existingMapping['building_blocks'][$class]['enabled']) && $this->existingMapping['building_blocks'][$class]['enabled'];
     }
 
     /**
@@ -393,6 +434,11 @@ class BuildingBlockHandler
 # [*] You can enable or disable a full building block by simply setting the "enabled" flag to true or false, e.g.:
 #     C33s\ConstructionKitBundle\BuildingBlock\ConstructionKitBuildingBlock:
 #         enabled: true
+#
+#     If you enable a block for the first time, make sure the "init" flag is also set
+#     C33s\ConstructionKitBundle\BuildingBlock\ConstructionKitBuildingBlock:
+#         enabled: true
+#         init: true
 #
 # [*] "use_config" and "use_assets" flags will only be used if block is enabled. They do not affect disabled blocks.
 #

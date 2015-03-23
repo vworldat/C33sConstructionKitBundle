@@ -23,7 +23,7 @@ class DebugCommand extends ContainerAwareCommand
             )
             ->addOption(
                 'details',
-                null,
+                'd',
                 InputOption::VALUE_NONE,
                 'Show details for all available building blocks'
             )

@@ -193,4 +193,45 @@ class YamlModifier
 
             return $data;
     }
+
+    /**
+     * Add the given parameter name and value to the given parameters.yml file.
+     *
+     * @param string $filename
+     * @param string $name
+     * @param mixed $value
+     * @param boolean $preserveFormatting
+     * @param string $addComment
+     */
+    public function addParameterToFile($filename, $name, $value, $preserveFormatting, $addComment = null)
+    {
+        $content = file_get_contents($filename);
+        $data = Yaml::parse($content);
+
+        if ($preserveFormatting)
+        {
+            $content = rtrim($content);
+
+            $c = Yaml::dump(array(
+                'parameters' => array(
+                    $name => $value,
+                ),
+            ), 99);
+
+            list(, $c) = explode("\n", $c, 2);
+
+            if (null !== $addComment)
+            {
+                $content .= "\n\n    # ".$addComment;
+            }
+            $content .= "\n".$c;
+        }
+        else
+        {
+            $data['parameters'][$name] = $value;
+            $content = Yaml::dump($data, 99);
+        }
+
+        file_put_contents($filename, $content);
+    }
 }

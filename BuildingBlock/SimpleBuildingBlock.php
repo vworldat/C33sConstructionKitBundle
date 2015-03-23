@@ -296,4 +296,36 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
 
         return array();
     }
+
+    /**
+     * Get list of parameters including their default values to add to parameters.yml and parameters.yml.dist if not set already.
+     *
+     * This will be called every time the building blocks are refreshed.
+     *
+     * @return array
+     */
+    public function getAddParameters()
+    {
+        return array();
+    }
+
+    /**
+     * Get list of parameters including their default values to add to parameters.yml and parameters.yml.dist.
+     * If they already exist in parameters.yml, they will be replaced.
+     *
+     * This will only be called once during first enabling of the building block
+     *
+     * @return array
+     */
+    public function getInitialParameters()
+    {
+        return array();
+    }
+
+    /**
+     * Run any arbitrary code during first-time initialization of this block.
+     */
+    public function init()
+    {
+    }
 }
