@@ -177,17 +177,29 @@ class BuildingBlockHandler
 
             foreach ($assets as $group => $grouped)
             {
-                foreach (array_keys($grouped) as $relative)
+                if (!array_key_exists($group, $newMap['assets']))
                 {
-                    if ($useAssets && (!isset($newMap['assets'][$group][$relative]) || !$newMap['assets'][$group][$relative]))
+                    $newMap['assets'][$group] = array(
+                        'enabled' => array(),
+                        'disabled' => array(),
+                        'filters' => array(),
+                    );
+                }
+
+                foreach ($grouped as $asset)
+                {
+                    if ($useAssets && !in_array($asset, $newMap['assets'][$group]['enabled']) && !in_array($asset, $newMap['assets'][$group]['disabled']))
                     {
                         // append assets that did not appear previously
-                        $newMap['assets'][$group][$relative] = true;
+                        $newMap['assets'][$group]['enabled'][] = $asset;
                     }
-                    elseif (!$useAssets && isset($newMap['assets'][$group][$relative]))
+                    elseif (!$useAssets && in_array($asset, $newMap['assets'][$group]['enabled']))
                     {
                         // disable previously defined assets if enabled
-                        $newMap['assets'][$group][$relative] = false;
+                        $key = array_search($asset, $newMap['assets'][$group]['enabled']);
+                        unset($newMap['assets'][$group]['enabled'][$key]);
+                        $newMap['assets'][$group]['enabled'] = array_values($newMap['assets'][$group]['enabled']);
+                        $newMap['assets'][$group]['disabled'][] = $asset;
                     }
                 }
             }
@@ -442,12 +454,22 @@ class BuildingBlockHandler
 #
 # [*] "use_config" and "use_assets" flags will only be used if block is enabled. They do not affect disabled blocks.
 #
+# [*] Asset lists will automatically be filled by all assets of asset-enabled blocks. To exclude specific assets, move them to their
+#     respective "disabled" sections. You may also reorder assets - the order will be preserved.
+#
+# [*] Assets are made available through assetic using the @asset_group notation.
+#
 # [*] Custom YAML comments in this file will be lost!
 #
 
 EOF;
 
-        $content .= Yaml::dump($data, 5);
+        $content .= Yaml::dump($data, 6);
+
+        // force remove empty asset arrays to ease copy&paste of YAML lines
+        $content = str_replace('                disabled: {  }', '                disabled:', $content);
+        $content = str_replace('                enabled: {  }', '                enabled:', $content);
+        $content = str_replace('                filters: {  }', '                filters:', $content);
 
         $this->configHandler->addModuleConfig('c33s_construction_kit.map', $content, '', true);
     }
@@ -606,20 +628,17 @@ EOF;
                 }
             }
 
-            $table->addRow(array("<info> Assets:</info>", ""));
-            ksort($info['assets']);
+            $table->render();
+
+            $output->writeln("<info>  Assets:</info>");
             foreach ($info['assets'] as $group => $grouped)
             {
-                ksort($grouped);
-                $table->addRow(array("   <comment>{$group}</comment>", ""));
-                foreach ($grouped as $relative => $asset)
+                $output->writeln("    <comment>{$group}</comment>", "");
+                foreach ($grouped as $asset)
                 {
-                    $base = basename($asset);
-                    $table->addRow(array("     - {$base}", "  ".$relative));
+                    $output->writeln("      - {$asset}");
                 }
             }
-
-            $table->render();
         }
     }
 }

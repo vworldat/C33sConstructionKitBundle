@@ -200,10 +200,11 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
      *     "admin_css"      => array('path/to/some.css'),
      * );
      *
+     * Asset paths must be provided in a way that allows them to be loaded using Assetic.
      * The usage of this feature highly depends on your specific project structure.
      *
      * @return array
-    */
+     */
     public function getAssets()
     {
         if (null === $this->assets)
@@ -248,7 +249,8 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
                 $files = $this->findFilesInBundleDir($searchDir.'/'.$groupDir->getFilename(), '*.*', '< 10');
                 if (count($files))
                 {
-                    $assets[$groupDir->getFilename()] = $files;
+                    // for assets we only use the @Bundle relative notation to be used with assetic
+                    $assets[$groupDir->getFilename()] = array_keys($files);
                 }
             }
         }

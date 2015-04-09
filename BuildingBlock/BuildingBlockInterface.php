@@ -68,6 +68,7 @@ interface BuildingBlockInterface
      *     "admin_css"      => array('path/to/some.css'),
      * );
      *
+     * Asset paths must be provided in a way that allows them to be loaded using Assetic.
      * The usage of this feature highly depends on your specific project structure.
      *
      * @return array
