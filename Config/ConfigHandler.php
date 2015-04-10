@@ -169,20 +169,6 @@ class ConfigHandler
             'imports' => isset($modules['imports']) ? $modules['imports']['data']['imports'] : array(),
         );
 
-        if ('' == $environment)
-        {
-            // add defaults importer to default config file
-            $filename = '_building_block_defaults.yml';
-            if (!$this->yamlModifier->dataContainsImportFile($data, $filename))
-            {
-                $file = $this->getBaseConfigFolder().$filename;
-                if (!file_exists($filename))
-                {
-                    touch($filename);
-                }
-            }
-        }
-
         $filename = $folderName.'_importer.yml';
         if (!$this->yamlModifier->dataContainsImportFile($data, $filename))
         {
