@@ -1,20 +1,13 @@
 parameters:
-    c33s_construction_kit.config_handler.class:         C33s\ConstructionKitBundle\Config\ConfigHandler
     c33s_construction_kit.building_block_handler.class: C33s\ConstructionKitBundle\BuildingBlock\BuildingBlockHandler
 
 services:
-    c33s_construction_kit.config_handler:
-        class: "%c33s_construction_kit.config_handler.class%"
-        arguments:
-            - "%kernel.root_dir%"
-            - "@logger"
-
     c33s_construction_kit.building_block_handler:
         class: "%c33s_construction_kit.building_block_handler.class%"
         arguments:
             - "@kernel"
             - "@logger"
-            - "@c33s_construction_kit.config_handler"
+            - "@c33s_symfony_config_manipulator.config_manipulator"
             - "%c33s_construction_kit.building_blocks.composer%"
             - "%c33s_construction_kit.mapping%"
             - "%c33s_construction_kit.environments%"

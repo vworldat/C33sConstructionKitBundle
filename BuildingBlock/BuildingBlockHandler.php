@@ -2,13 +2,13 @@
 
 namespace C33s\ConstructionKitBundle\BuildingBlock;
 
-use C33s\ConstructionKitBundle\Config\ConfigHandler;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Yaml\Yaml;
 use C33s\ConstructionKitBundle\Manipulator\KernelManipulator;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Helper\Table;
+use C33s\SymfonyConfigManipulatorBundle\Manipulator\ConfigManipulator;
 
 class BuildingBlockHandler
 {
@@ -26,9 +26,9 @@ class BuildingBlockHandler
 
     /**
      *
-     * @var ConfigHandler
+     * @var ConfigManipulator
      */
-    protected $configHandler;
+    protected $configManipulator;
 
     /**
      *
@@ -50,11 +50,11 @@ class BuildingBlockHandler
      *
      * @param string $rootDir   Kernel root dir
      */
-    public function __construct(KernelInterface $kernel, LoggerInterface $logger, ConfigHandler $configHandler, $composerBuildingBlocks, $mapping, array $environments)
+    public function __construct(KernelInterface $kernel, LoggerInterface $logger, ConfigManipulator $configManipulator, $composerBuildingBlocks, $mapping, array $environments)
     {
         $this->kernel = $kernel;
         $this->logger = $logger;
-        $this->configHandler = $configHandler;
+        $this->configManipulator = $configManipulator;
         $this->composerBuildingBlockClasses = $composerBuildingBlocks;
         $this->existingMapping = $mapping;
         $this->environments = $environments;
@@ -284,7 +284,7 @@ class BuildingBlockHandler
                 $comment = 'Added by '.get_class($block).' init()';
                 foreach ($block->getInitialParameters() as $name => $defaultValue)
                 {
-                    $this->configHandler->addParameter($name, $defaultValue, $comment);
+                    $this->configManipulator->addParameter($name, $defaultValue, $comment);
                     $comment = null;
                 }
             }
@@ -300,7 +300,7 @@ class BuildingBlockHandler
             {
                 if ($init || !$this->kernel->getContainer()->hasParameter($name))
                 {
-                    $this->configHandler->addParameter($name, $defaultValue, $comment);
+                    $this->configManipulator->addParameter($name, $defaultValue, $comment);
                     $comment = null;
                 }
             }
@@ -311,10 +311,10 @@ class BuildingBlockHandler
                 foreach ($templates as $relative => $template)
                 {
                     $module = basename($template, '.yml');
-                    if ($this->configHandler->checkCanCreateModuleConfig($module, $env, false))
+                    if ($this->configManipulator->checkCanCreateModuleConfig($module, $env, false))
                     {
                         $content = file_get_contents($template);
-                        $this->configHandler->addModuleConfig($module, $content, $env);
+                        $this->configManipulator->addModuleConfig($module, $content, $env);
                     }
 
                     $usedModules[$env][$module] = true;
@@ -325,22 +325,34 @@ class BuildingBlockHandler
             {
                 foreach ($defaults as $relative => $default)
                 {
-                    $module = basename($default, '.yml');
-                    $this->configHandler->addDefaultsImport($relative, $env);
+                    // this is the file that will hold all defaults imports per environment
+                    $defaultsImporterFile = $this->configManipulator->getModuleFile($this->getDefaultsImporterModuleName(), $env);
 
-                    if (!isset($usedModules[$env][$module]) && $this->configHandler->checkCanCreateModuleConfig($module, $env))
+                    // first add the imported defaults file to the defaults importer (e.g. config/_building_block_defaults.yml)
+                    $this->configManipulator->getYamlManipulator()->addImportFilenameToImporterFile($defaultsImporterFile, $relative);
+
+                    // now as the defaults importer exists we may add it to the main config file
+                    $this->configManipulator->enableModuleConfig($this->getDefaultsImporterModuleName(), $env);
+
+                    $module = basename($default, '.yml');
+                    if (!isset($usedModules[$env][$module]) && $this->configManipulator->checkCanCreateModuleConfig($module, $env))
                     {
                         // any modules that only use a defaults file will be provided with a commented version of the given file.
                         $content = file_get_contents($default);
                         $content = "#".preg_replace("/\n/", "\n#", $content);
                         $content = "# This file was auto-generated based on ".$relative."\n# Feel free to change anything you have to.\n\n".$content;
-                        $this->configHandler->addModuleConfig($module, $content, $env, true);
+                        $this->configManipulator->addModuleConfig($module, $content, $env, true);
                     }
                 }
             }
         }
 
         return $info['bundle_classes'];
+    }
+
+    protected function getDefaultsImporterModuleName()
+    {
+        return '_building_block_defaults';
     }
 
     protected function markAsInitialized(BuildingBlockInterface $block)
@@ -471,7 +483,7 @@ EOF;
         $content = str_replace('                enabled: {  }', '                enabled:', $content);
         $content = str_replace('                filters: {  }', '                filters:', $content);
 
-        $this->configHandler->addModuleConfig('c33s_construction_kit.map', $content, '', true);
+        $this->configManipulator->addModuleConfig('c33s_construction_kit.map', $content, '', true);
     }
 
     public function debug(OutputInterface $output, array $blockClasses, $showDetails = false)
