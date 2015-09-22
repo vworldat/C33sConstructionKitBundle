@@ -447,13 +447,13 @@ class BuildingBlockHandler
 
         $content = <<<EOF
 # This file is auto-updated each time construction-kit:update-blocks is called.
-# This may happen automatically during various composer events (install, update, dump-autoload)
+# This may happen automatically during various composer events (install, update)
 #
 # Follow these rules for your maximum building experience:
 #
 # [*] Only edit existing block classes in this file. If you need to add another custom building block class use the
 #     composer extra 'c33s-building-blocks' or register your block as a tagged service (tag 'c33s_building_block').
-#     Make sure your block implements C33s\\ConstructionKitBundle\\BuildingBlock\\BuildingBlockInterface
+#     Make sure your block implements C33s\ConstructionKitBundle\BuildingBlock\BuildingBlockInterface
 #
 # [*] You can enable or disable a full building block by simply setting the "enabled" flag to true or false, e.g.:
 #     C33s\ConstructionKitBundle\BuildingBlock\ConstructionKitBuildingBlock:
