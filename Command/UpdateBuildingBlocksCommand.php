@@ -2,11 +2,11 @@
 
 namespace C33s\ConstructionKitBundle\Command;
 
+use C33s\ConstructionKitBundle\BuildingBlock\BuildingBlockHandler;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Input\InputOption;
-use C33s\ConstructionKitBundle\BuildingBlock\BuildingBlockHandler;
+use Symfony\Component\Console\Output\OutputInterface;
 
 class UpdateBuildingBlocksCommand extends ContainerAwareCommand
 {
@@ -26,8 +26,7 @@ class UpdateBuildingBlocksCommand extends ContainerAwareCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        if (OutputInterface::VERBOSITY_NORMAL == $output->getVerbosity())
-        {
+        if (OutputInterface::VERBOSITY_NORMAL == $output->getVerbosity()) {
             // enforce verbose output by default
             //$output->setVerbosity(OutputInterface::VERBOSITY_VERBOSE);
         }

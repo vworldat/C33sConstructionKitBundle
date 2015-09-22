@@ -3,14 +3,13 @@
 namespace C33s\ConstructionKitBundle\BuildingBlock;
 
 use Symfony\Component\Finder\Finder;
-use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Finder\SplFileInfo;
 use Symfony\Component\HttpKernel\Bundle\BundleInterface;
+use Symfony\Component\HttpKernel\KernelInterface;
 
 abstract class SimpleBuildingBlock implements BuildingBlockInterface
 {
     /**
-     *
      * @var KernelInterface
      */
     protected $kernel;
@@ -23,21 +22,21 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
     protected $mainBundle;
 
     /**
-     * Holds default config files once detected
+     * Holds default config files once detected.
      *
      * @var array
      */
     protected $defaultConfigs = array();
 
     /**
-     * Holds config template files once detected
+     * Holds config template files once detected.
      *
      * @var array
      */
     protected $configTemplates = array();
 
     /**
-     * Holds asset files once detected
+     * Holds asset files once detected.
      *
      * @var array
      */
@@ -58,8 +57,7 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
      */
     protected function getKernel()
     {
-        if (null === $this->kernel)
-        {
+        if (null === $this->kernel) {
             throw new \LogicException('Please inject a KernelInterface instance using setKernel() before using this method.');
         }
 
@@ -70,7 +68,7 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
      * Return true if this block should be installed automatically as soon as it is registered (e.g. using composer).
      * This is the only public method that should not rely on a previously injected Kernel.
      *
-     * @return boolean
+     * @return bool
      */
     public function isAutoInstall()
     {
@@ -87,14 +85,12 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
      */
     protected function getMainBundle()
     {
-        if (null !== $this->mainBundle)
-        {
+        if (null !== $this->mainBundle) {
             return $this->mainBundle;
         }
 
         $classes = $this->getBundleClasses();
-        if (!count($classes))
-        {
+        if (!count($classes)) {
             throw new \RuntimeException('SimpleBuildingBlock requires you to at least define one bundle in getBundleClasses() to use as your main bundle');
         }
 
@@ -109,7 +105,7 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
      * Return an array containing full file paths indexed by bundle-notation file paths:
      * [
      *     '@MyBundle/Resources/config/defaults/my.yml' => '/path/to/my/project/src/My/MyBundle/Resources/config/defaults/my.yml',
-     * ]
+     * ].
      *
      * @param $environment  The config environment to use ('', 'dev', 'prod', ...)
      *
@@ -117,8 +113,7 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
      */
     public function getDefaultConfigs($environment = '')
     {
-        if (!isset($this->defaultConfigs[$environment]))
-        {
+        if (!isset($this->defaultConfigs[$environment])) {
             $env = ('' === $environment) ? $environment : '.'.$environment;
             $this->defaultConfigs[$environment] = $this->findFilesInBundleDir('Resources/config/defaults'.$env.'/'.$this->getPathSuffix().'/', '*.yml');
         }
@@ -131,7 +126,7 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
      * Return an array containing full file paths indexed by bundle-notation file paths:
      * [
      *     '@MyBundle/Resources/config/templates/my.yml' => '/path/to/my/project/src/My/MyBundle/Resources/config/templates/my.yml',
-     * ]
+     * ].
      *
      * Each section that is included in getDefaultConfigs() but not in the templates will be pre-generated using a
      * commented copy of the default config.
@@ -142,8 +137,7 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
      */
     public function getConfigTemplates($environment = '')
     {
-        if (!isset($this->configTemplates[$environment]))
-        {
+        if (!isset($this->configTemplates[$environment])) {
             $env = '' === $environment ? $environment : '.'.$environment;
             $this->configTemplates[$environment] = $this->findFilesInBundleDir('Resources/config/templates'.$env.'/'.$this->getPathSuffix().'/', '*.yml');
         }
@@ -155,7 +149,7 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
      * Find all yml files in the given folder in this block's main bundle.
      *
      * @param string $dirName
-     * @param string $pattern           File name pattern to search for
+     * @param string $pattern File name pattern to search for
      *
      * @return array
      */
@@ -165,8 +159,7 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
         $bundleName = $this->getMainBundle()->getName();
 
         $dir = $baseDir.'/'.$dirName;
-        if (!is_dir($dir))
-        {
+        if (!is_dir($dir)) {
             return array();
         }
 
@@ -180,8 +173,7 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
         ;
 
         $files = array();
-        foreach ($finder as $file)
-        {
+        foreach ($finder as $file) {
             /* @var $file SplFileInfo */
             $relative = substr($file->getRealPath(), strlen($baseDir));
             $files['@'.$bundleName.$relative] = $file->getRealPath();
@@ -207,8 +199,7 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
      */
     public function getAssets()
     {
-        if (null === $this->assets)
-        {
+        if (null === $this->assets) {
             $this->assets = $this->findAssets();
         }
 
@@ -229,11 +220,9 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
 
         $baseDir = $this->getMainBundleDir();
         $assets = array();
-        foreach ($searchIn as $searchDir)
-        {
+        foreach ($searchIn as $searchDir) {
             $dir = $baseDir.'/'.$searchDir;
-            if (!is_dir($dir))
-            {
+            if (!is_dir($dir)) {
                 continue;
             }
 
@@ -244,11 +233,9 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
                 ->in($dir)
             ;
 
-            foreach ($finder as $groupDir)
-            {
+            foreach ($finder as $groupDir) {
                 $files = $this->findFilesInBundleDir($searchDir.'/'.$groupDir->getFilename(), '*.*', '< 10');
-                if (count($files))
-                {
+                if (count($files)) {
                     // for assets we only use the @Bundle relative notation to be used with assetic
                     $assets[$groupDir->getFilename()] = array_keys($files);
                 }
@@ -282,17 +269,17 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
 
     /**
      * Return all assets for a specific asset group. If no assets are defined for the group, return empty array.
+     *
      * @see getAssets()
      *
      * @param string $groupName
      *
      * @return array
-    */
+     */
     public function getAssetsByGroup($groupName)
     {
         $assets = $this->getAssets();
-        if (array_key_exists($groupName, $assets))
-        {
+        if (array_key_exists($groupName, $assets)) {
             return $assets[$groupName];
         }
 

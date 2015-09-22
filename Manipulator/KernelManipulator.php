@@ -13,8 +13,8 @@
 
 namespace C33s\ConstructionKitBundle\Manipulator;
 
-use Symfony\Component\HttpKernel\KernelInterface;
 use Sensio\Bundle\GeneratorBundle\Manipulator\Manipulator;
+use Symfony\Component\HttpKernel\KernelInterface;
 
 /**
  * Changes the PHP code of a Kernel.
@@ -38,15 +38,14 @@ class KernelManipulator extends Manipulator
     }
 
     /**
-     * Writes new bundle(s) to AppKernel
+     * Writes new bundle(s) to AppKernel.
      *
      * @param array $lines Lines to write
      *
-     * @return bool    true if write was successful, false otherwise.
+     * @return bool true if write was successful, false otherwise.
      */
     private function writeAppKernel($src, $bundles)
     {
-
         $method = $this->reflected->getMethod('registerBundles');
         $lines = array_slice($src, $method->getStartLine() - 1, $method->getEndLine() - $method->getStartLine() + 1);
 
@@ -83,7 +82,7 @@ class KernelManipulator extends Manipulator
                 $lines = array_merge(
                     array_slice($src, 0, $this->line - 2),
                     // Appends a separator comma to the current last position of the array
-                    array(rtrim(rtrim($src[$this->line - 2]), ',') . ",\n"),
+                    array(rtrim(rtrim($src[$this->line - 2]), ',').",\n"),
                     array($bundles),
                     array_slice($src, $this->line - 1)
                 );
@@ -93,25 +92,22 @@ class KernelManipulator extends Manipulator
                 return true;
             }
         }
-
     }
 
     /**
-     * isBundleDefined
+     * isBundleDefined.
      *
      * @param array  $src    ource file to check
      * @param string $bundle Bundle to check for
      *
-     * @return bool    Is the bundle already defined?
+     * @return bool Is the bundle already defined?
      */
     private function isBundleDefined($src, $bundle)
     {
-
         $method = $this->reflected->getMethod('registerBundles');
         $lines = array_slice($src, $method->getStartLine() - 1, $method->getEndLine() - $method->getStartLine() + 1);
 
         return (bool) false !== strpos(implode('', $lines), $bundle);
-
     }
 
     /**
@@ -119,7 +115,7 @@ class KernelManipulator extends Manipulator
      *
      * @param string $bundle The bundle class name
      *
-     * @return bool    true if it worked, false otherwise
+     * @return bool true if it worked, false otherwise
      *
      * @throws \RuntimeException If bundle is already defined
      */
@@ -139,7 +135,6 @@ class KernelManipulator extends Manipulator
         $bundleLoader = sprintf("            new %s(),\n", $bundle);
 
         return $this->writeAppKernel($src, $bundleLoader);
-
     }
 
     /**
@@ -147,7 +142,7 @@ class KernelManipulator extends Manipulator
      *
      * @param array $bundle The bundle class names to add
      *
-     * @return bool    true if it worked, false otherwise
+     * @return bool true if it worked, false otherwise
      *
      * @throws \RuntimeException If bundle is already defined
      */
@@ -163,13 +158,9 @@ class KernelManipulator extends Manipulator
 
         // Don't add same bundle twice
         foreach ($bundles as $bundle) {
-
             if (!$this->isBundleDefined($src, $bundle)) {
-
                 $bundleLoader .= sprintf("            new %s(),\n", $bundle);
-
             }
-
         }
 
         if ('' == $bundleLoader) {
@@ -177,6 +168,5 @@ class KernelManipulator extends Manipulator
         }
 
         return $this->writeAppKernel($src, $bundleLoader);
-
     }
 }

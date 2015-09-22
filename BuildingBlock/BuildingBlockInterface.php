@@ -10,7 +10,7 @@ interface BuildingBlockInterface
      * Return true if this block should be installed automatically as soon as it is registered (e.g. using composer).
      * This is the only public method that should not rely on a previously injected Kernel.
      *
-     * @return boolean
+     * @return bool
      */
     public function isAutoInstall();
 
@@ -23,7 +23,7 @@ interface BuildingBlockInterface
 
     /**
      * Get the fully namespaced classes of all bundles that should be enabled to use this BuildingBlock.
-     * These will be used in AppKernel.php
+     * These will be used in AppKernel.php.
      *
      * @return array
      */
@@ -34,7 +34,7 @@ interface BuildingBlockInterface
      * Return an array containing full file paths indexed by bundle-notation file paths:
      * [
      *     '@MyBundle/Resources/config/defaults/my.yml' => '/path/to/my/project/src/My/MyBundle/Resources/config/defaults/my.yml',
-     * ]
+     * ].
      *
      * @param $environment  The config environment to use ('', 'dev', 'prod', ...)
      *
@@ -47,7 +47,7 @@ interface BuildingBlockInterface
      * Return an array containing full file paths indexed by bundle-notation file paths:
      * [
      *     '@MyBundle/Resources/config/templates/my.yml' => '/path/to/my/project/src/My/MyBundle/Resources/config/templates/my.yml',
-     * ]
+     * ].
      *
      * Each section that is included in getDefaultConfigs() but not in the templates will be pre-generated using a
      * commented copy of the default config.
@@ -77,6 +77,7 @@ interface BuildingBlockInterface
 
     /**
      * Return all assets for a specific asset group. If no assets are defined for the group, return empty array.
+     *
      * @see getAssets()
      *
      * @param string $groupName

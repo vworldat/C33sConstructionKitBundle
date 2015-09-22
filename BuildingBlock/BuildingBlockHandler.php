@@ -2,36 +2,32 @@
 
 namespace C33s\ConstructionKitBundle\BuildingBlock;
 
+use C33s\ConstructionKitBundle\Manipulator\KernelManipulator;
+use C33s\SymfonyConfigManipulatorBundle\Manipulator\ConfigManipulator;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Yaml\Yaml;
-use C33s\ConstructionKitBundle\Manipulator\KernelManipulator;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Helper\Table;
-use C33s\SymfonyConfigManipulatorBundle\Manipulator\ConfigManipulator;
 
 class BuildingBlockHandler
 {
     /**
-     *
      * @var KernelInterface
      */
     protected $kernel;
 
     /**
-     *
      * @var LoggerInterface
      */
     protected $logger;
 
     /**
-     *
      * @var ConfigManipulator
      */
     protected $configManipulator;
 
     /**
-     *
      * @var array
      */
     protected $composerBuildingBlockClasses;
@@ -47,8 +43,7 @@ class BuildingBlockHandler
     protected $environments;
 
     /**
-     *
-     * @param string $rootDir   Kernel root dir
+     * @param string $rootDir Kernel root dir
      */
     public function __construct(KernelInterface $kernel, LoggerInterface $logger, ConfigManipulator $configManipulator, $composerBuildingBlocks, $mapping, array $environments)
     {
@@ -64,7 +59,7 @@ class BuildingBlockHandler
      * Set a building block definition.
      *
      * @param BuildingBlockInterface $block
-     * @param string $setBy                 Optional information where this block comes from (for debugging)
+     * @param string                 $setBy Optional information where this block comes from (for debugging)
      */
     public function addBuildingBlock(BuildingBlockInterface $block, $setBy = '')
     {
@@ -86,8 +81,7 @@ class BuildingBlockHandler
 
     protected function getMapping()
     {
-        if (null === $this->newMapping)
-        {
+        if (null === $this->newMapping) {
             $this->newMapping = $this->detectChanges();
         }
 
@@ -95,28 +89,23 @@ class BuildingBlockHandler
     }
 
     /**
-     * Get BuildingBlocks defined by composer
+     * Get BuildingBlocks defined by composer.
      *
      * @return BuildingBlockInterface[]
      */
     protected function loadComposerBuildingBlocks()
     {
-        foreach ($this->composerBuildingBlockClasses as $package => $classes)
-        {
-            foreach ($classes as $class)
-            {
-                if (0 !== strpos($class, '\\'))
-                {
+        foreach ($this->composerBuildingBlockClasses as $package => $classes) {
+            foreach ($classes as $class) {
+                if (0 !== strpos($class, '\\')) {
                     // make sure the class always starts with a backslash to reduce danger of having duplicate classes
                     $class = '\\'.$class;
                 }
 
-                if (!class_exists($class))
-                {
+                if (!class_exists($class)) {
                     throw new \InvalidArgumentException("The building block class '$class' defined by composer package '$package' does not exist or cannot be accessed.");
                 }
-                if (!array_key_exists('C33s\\ConstructionKitBundle\\BuildingBlock\\BuildingBlockInterface', class_implements($class)))
-                {
+                if (!array_key_exists('C33s\\ConstructionKitBundle\\BuildingBlock\\BuildingBlockInterface', class_implements($class))) {
                     throw new \InvalidArgumentException("The building block class '$class' defined by composer package '$package' does not implement BuildingBlockInterface.");
                 }
 
@@ -129,31 +118,25 @@ class BuildingBlockHandler
      * At this point all available blocks are collected inside $this->buildingBlocks. The existing class map is placed in $this->existingMapping.
      * We have to detect both new and removed blocks and act accordingly.
      *
-     * @return array    New blocks map
+     * @return array New blocks map
      */
     protected function detectChanges()
     {
         $newMap = array('building_blocks' => array());
 
-        if (!array_key_exists('building_blocks', $this->existingMapping))
-        {
+        if (!array_key_exists('building_blocks', $this->existingMapping)) {
             $this->existingMapping['building_blocks'] = array();
         }
-        if (!array_key_exists('assets', $this->existingMapping))
-        {
+        if (!array_key_exists('assets', $this->existingMapping)) {
             $this->existingMapping['assets'] = array();
         }
 
         // detect new blocks
-        foreach ($this->buildingBlocks as $class => $block)
-        {
-            if (array_key_exists($class, $this->existingMapping['building_blocks']))
-            {
+        foreach ($this->buildingBlocks as $class => $block) {
+            if (array_key_exists($class, $this->existingMapping['building_blocks'])) {
                 // just copy over the information
                 $newMap['building_blocks'][$class] = $this->existingMapping['building_blocks'][$class];
-            }
-            else
-            {
+            } else {
                 // This block does not appear in the existing map. Whether to enable it or not can be decided based on its autoInstall result.
                 $newMap['building_blocks'][$class] = array(
                     'enabled' => (boolean) $block->isAutoInstall(),
@@ -167,18 +150,15 @@ class BuildingBlockHandler
         ksort($newMap['building_blocks']);
         $newMap['assets'] = $this->existingMapping['assets'];
 
-        foreach ($newMap['building_blocks'] as $class => $settings)
-        {
+        foreach ($newMap['building_blocks'] as $class => $settings) {
             $useAssets = $settings['enabled'] && $settings['use_assets'];
 
             $block = $this->getBlock($class);
             $this->getBlockInfo($block);
             $assets = $block->getAssets();
 
-            foreach ($assets as $group => $grouped)
-            {
-                if (!array_key_exists($group, $newMap['assets']))
-                {
+            foreach ($assets as $group => $grouped) {
+                if (!array_key_exists($group, $newMap['assets'])) {
                     $newMap['assets'][$group] = array(
                         'enabled' => array(),
                         'disabled' => array(),
@@ -186,15 +166,11 @@ class BuildingBlockHandler
                     );
                 }
 
-                foreach ($grouped as $asset)
-                {
-                    if ($useAssets && !in_array($asset, $newMap['assets'][$group]['enabled']) && !in_array($asset, $newMap['assets'][$group]['disabled']))
-                    {
+                foreach ($grouped as $asset) {
+                    if ($useAssets && !in_array($asset, $newMap['assets'][$group]['enabled']) && !in_array($asset, $newMap['assets'][$group]['disabled'])) {
                         // append assets that did not appear previously
                         $newMap['assets'][$group]['enabled'][] = $asset;
-                    }
-                    elseif (!$useAssets && in_array($asset, $newMap['assets'][$group]['enabled']))
-                    {
+                    } elseif (!$useAssets && in_array($asset, $newMap['assets'][$group]['enabled'])) {
                         // disable previously defined assets if enabled
                         $key = array_search($asset, $newMap['assets'][$group]['enabled']);
                         unset($newMap['assets'][$group]['enabled'][$key]);
@@ -215,17 +191,13 @@ class BuildingBlockHandler
         $newMap = $this->getMapping();
 
         $bundlesToEnable = array();
-        foreach ($newMap['building_blocks'] as $class => $settings)
-        {
+        foreach ($newMap['building_blocks'] as $class => $settings) {
             $block = $this->getBlock($class);
             $block->setKernel($this->kernel);
 
-            if ($settings['enabled'])
-            {
+            if ($settings['enabled']) {
                 $bundlesToEnable = array_merge($bundlesToEnable, $this->enableBlock($block, $settings['use_config'], $settings['init']));
-            }
-            else
-            {
+            } else {
                 $this->disableBlock($block);
             }
         }
@@ -235,7 +207,6 @@ class BuildingBlockHandler
     }
 
     /**
-     *
      * @throws \InvalidArgumentException
      *
      * @param string $class
@@ -244,8 +215,7 @@ class BuildingBlockHandler
      */
     protected function getBlock($class)
     {
-        if (!isset($this->buildingBlocks[$class]))
-        {
+        if (!isset($this->buildingBlocks[$class])) {
             throw new \InvalidArgumentException("Block class $class is not registered");
         }
 
@@ -254,36 +224,32 @@ class BuildingBlockHandler
 
     /**
      * Disable a previously enabled building block.
-     * TODO: ask user whether to remove class and config
+     * TODO: ask user whether to remove class and config.
      *
      * @param BuildingBlockInterface $block
      */
     protected function disableBlock(BuildingBlockInterface $block)
     {
-
     }
 
     /**
      * Enable a building block.
      *
      * @param BuildingBlockInterface $block
-     * @param boolean $useConfig
-     * @param boolean $init
+     * @param bool                   $useConfig
+     * @param bool                   $init
      *
-     * @return array    List of bundles to enable for this block
+     * @return array List of bundles to enable for this block
      */
     protected function enableBlock(BuildingBlockInterface $block, $useConfig, $init)
     {
         $info = $this->getBlockInfo($block);
 
-        if ($init)
-        {
-            $this->logger->info("Initializing ".get_class($block));
-            if ($useConfig)
-            {
+        if ($init) {
+            $this->logger->info('Initializing '.get_class($block));
+            if ($useConfig) {
                 $comment = 'Added by '.get_class($block).' init()';
-                foreach ($block->getInitialParameters() as $name => $defaultValue)
-                {
+                foreach ($block->getInitialParameters() as $name => $defaultValue) {
                     $this->configManipulator->addParameter($name, $defaultValue, $comment);
                     $comment = null;
                 }
@@ -293,26 +259,20 @@ class BuildingBlockHandler
             $this->markAsInitialized($block);
         }
 
-        if ($useConfig)
-        {
+        if ($useConfig) {
             $comment = 'Added by '.get_class($block);
-            foreach ($block->getAddParameters() as $name => $defaultValue)
-            {
-                if ($init || !$this->kernel->getContainer()->hasParameter($name))
-                {
+            foreach ($block->getAddParameters() as $name => $defaultValue) {
+                if ($init || !$this->kernel->getContainer()->hasParameter($name)) {
                     $this->configManipulator->addParameter($name, $defaultValue, $comment);
                     $comment = null;
                 }
             }
 
             $usedModules = array();
-            foreach ($info['config_templates'] as $env => $templates)
-            {
-                foreach ($templates as $relative => $template)
-                {
+            foreach ($info['config_templates'] as $env => $templates) {
+                foreach ($templates as $relative => $template) {
                     $module = basename($template, '.yml');
-                    if ($this->configManipulator->checkCanCreateModuleConfig($module, $env, false))
-                    {
+                    if ($this->configManipulator->checkCanCreateModuleConfig($module, $env, false)) {
                         $content = file_get_contents($template);
                         $this->configManipulator->addModuleConfig($module, $content, $env);
                     }
@@ -321,10 +281,8 @@ class BuildingBlockHandler
                 }
             }
 
-            foreach ($info['default_configs'] as $env => $defaults)
-            {
-                foreach ($defaults as $relative => $default)
-                {
+            foreach ($info['default_configs'] as $env => $defaults) {
+                foreach ($defaults as $relative => $default) {
                     // this is the file that will hold all defaults imports per environment
                     $defaultsImporterFile = $this->configManipulator->getModuleFile($this->getDefaultsImporterModuleName(), $env);
 
@@ -335,12 +293,11 @@ class BuildingBlockHandler
                     $this->configManipulator->enableModuleConfig($this->getDefaultsImporterModuleName(), $env);
 
                     $module = basename($default, '.yml');
-                    if (!isset($usedModules[$env][$module]) && $this->configManipulator->checkCanCreateModuleConfig($module, $env))
-                    {
+                    if (!isset($usedModules[$env][$module]) && $this->configManipulator->checkCanCreateModuleConfig($module, $env)) {
                         // any modules that only use a defaults file will be provided with a commented version of the given file.
                         $content = file_get_contents($default);
-                        $content = "#".preg_replace("/\n/", "\n#", $content);
-                        $content = "# This file was auto-generated based on ".$relative."\n# Feel free to change anything you have to.\n\n".$content;
+                        $content = '#'.preg_replace("/\n/", "\n#", $content);
+                        $content = '# This file was auto-generated based on '.$relative."\n# Feel free to change anything you have to.\n\n".$content;
                         $this->configManipulator->addModuleConfig($module, $content, $env, true);
                     }
                 }
@@ -367,6 +324,7 @@ class BuildingBlockHandler
      * Get all block information in a single array.
      *
      * @param BuildingBlockInterface $block
+     *
      * @throws \InvalidArgumentException
      *
      * @return array
@@ -379,15 +337,12 @@ class BuildingBlockHandler
         $bundleClasses = $block->getBundleClasses();
 
         // check all the bundle classes first before adding anything anywhere
-        foreach ($bundleClasses as $bundleClass)
-        {
-            if (!class_exists($bundleClass))
-            {
+        foreach ($bundleClasses as $bundleClass) {
+            if (!class_exists($bundleClass)) {
                 throw new \InvalidArgumentException("Bundle class $bundleClass cannot be resolved");
             }
         }
-        foreach ($this->environments as $env)
-        {
+        foreach ($this->environments as $env) {
             $configTemplates[$env] = $block->getConfigTemplates($env);
             $defaultConfigs[$env] = $block->getDefaultConfigs($env);
         }
@@ -410,15 +365,12 @@ class BuildingBlockHandler
      */
     protected function enableBundles($bundleClasses)
     {
-        try
-        {
+        try {
             $manipulator = new KernelManipulator($this->kernel);
             $manipulator->addBundles($bundleClasses);
 
-            $this->logger->info("Adding ".implode(', ', $bundleClasses)." to AppKernel");
-        }
-        catch (\RuntimeException $e)
-        {
+            $this->logger->info('Adding '.implode(', ', $bundleClasses).' to AppKernel');
+        } catch (\RuntimeException $e) {
         }
     }
 
@@ -427,7 +379,7 @@ class BuildingBlockHandler
      *
      * @param string $class
      *
-     * @return boolean
+     * @return bool
      */
     protected function wasEnabled($class)
     {
@@ -488,7 +440,7 @@ EOF;
 
     public function debug(OutputInterface $output, array $blockClasses, $showDetails = false)
     {
-        $output->writeln("Updating blocks information ...");
+        $output->writeln('Updating blocks information ...');
         $this->updateBuildingBlocks();
 
         $blockClasses = $this->filterBlockClasses($blockClasses);
@@ -508,36 +460,29 @@ EOF;
     {
         $newMap = $this->getMapping();
         $filtered = array();
-        foreach ($blockClasses as $name)
-        {
+        foreach ($blockClasses as $name) {
             $name = str_replace('/', '\\', $name);
             $nameLower = strtolower($name);
             $matches = array();
 
-            foreach (array_keys($newMap['building_blocks']) as $class)
-            {
-                if ($name == $class)
-                {
+            foreach (array_keys($newMap['building_blocks']) as $class) {
+                if ($name == $class) {
                     $filtered[$class] = $class;
 
                     break;
                 }
 
                 $classLower = strtolower($class);
-                if (false !== strpos($classLower, $nameLower))
-                {
+                if (false !== strpos($classLower, $nameLower)) {
                     // the name is contained somewhere inside this class, remember for now
                     $matches[] = $class;
                 }
             }
 
-            if (0 == count($matches))
-            {
+            if (0 == count($matches)) {
                 throw new \InvalidArgumentException("There is no building block class matching '$name'. Did you type it correctly?");
-            }
-            elseif (count($matches) > 1)
-            {
-                throw new \InvalidArgumentException("The building block name '$name' is ambiguous and matches the following classes: '".implode("', '", $matches).". Please be more specific.");
+            } elseif (count($matches) > 1) {
+                throw new \InvalidArgumentException("The building block name '$name' is ambiguous and matches the following classes: '".implode("', '", $matches).'. Please be more specific.');
             }
 
             $filtered[] = $matches[0];
@@ -562,92 +507,76 @@ EOF;
             ))
         ;
 
-        foreach ($newMap['building_blocks'] as $class => $config)
-        {
+        foreach ($newMap['building_blocks'] as $class => $config) {
             $block = $this->getBlock($class);
             $table->addRow(array(
                 $class,
-                $config['enabled'] ? 'Yes':'No',
-                $config['use_config'] ? 'Yes':'No',
-                $config['use_assets'] ? 'Yes':'No',
+                $config['enabled'] ? 'Yes' : 'No',
+                $config['use_config'] ? 'Yes' : 'No',
+                $config['use_assets'] ? 'Yes' : 'No',
                 $this->buildingBlockSources[$class],
-                $block->isAutoInstall() ? 'Yes':'No',
+                $block->isAutoInstall() ? 'Yes' : 'No',
             ));
         }
 
         $table->render();
 
-        if (count($blockClasses) > 0)
-        {
+        if (count($blockClasses) > 0) {
             $showDetails = true;
         }
-        if ($showDetails && count($blockClasses) == 0)
-        {
+        if ($showDetails && count($blockClasses) == 0) {
             $blockClasses = array_keys($newMap['building_blocks']);
         }
 
-        if (!$showDetails)
-        {
+        if (!$showDetails) {
             return;
         }
 
-        foreach ($blockClasses as $class)
-        {
+        foreach ($blockClasses as $class) {
             $block = $this->getBlock($class);
             $info = $this->getBlockInfo($block);
 
             $output->writeln("\n<fg=cyan>{$class}:</fg=cyan>");
 
-            $output->writeln("<info>  Bundles:</info>");
+            $output->writeln('<info>  Bundles:</info>');
             $first = true;
-            foreach ($info['bundle_classes'] as $bundle)
-            {
-                if ($first)
-                {
+            foreach ($info['bundle_classes'] as $bundle) {
+                if ($first) {
                     $output->writeln("    - <options=bold>{$bundle}</options=bold>");
                     $first = false;
-                }
-                else
-                {
+                } else {
                     $output->writeln("    - $bundle");
                 }
             }
 
             $table = new Table($output);
             $table->setStyle('compact');
-            $table->addRow(array("<info> Application config:</info>", ""));
-            foreach ($info['config_templates'] as $env => $templates)
-            {
+            $table->addRow(array('<info> Application config:</info>', ''));
+            foreach ($info['config_templates'] as $env => $templates) {
                 ksort($templates);
                 $configPath = ('' == $env) ? 'config' : "config<options=bold>.$env</options=bold>";
-                foreach ($templates as $relative => $template)
-                {
+                foreach ($templates as $relative => $template) {
                     $base = basename($template);
-                    $table->addRow(array("   - {$configPath}/{$base}", "  ".$relative));
+                    $table->addRow(array("   - {$configPath}/{$base}", '  '.$relative));
                 }
-
             }
 
-            $table->addRow(array("<info> Default config:</info>", ""));
-            foreach ($info['default_configs'] as $env => $defaults)
-            {
+            $table->addRow(array('<info> Default config:</info>', ''));
+            foreach ($info['default_configs'] as $env => $defaults) {
                 ksort($defaults);
                 $configPath = ('' == $env) ? 'config' : "config<options=bold>.$env</options=bold>";
-                foreach ($defaults as $relative => $default)
-                {
+                foreach ($defaults as $relative => $default) {
                     $base = basename($default);
-                    $table->addRow(array("   - {$configPath}/{$base}", "  ".$relative));
+                    $table->addRow(array("   - {$configPath}/{$base}", '  '.$relative));
                 }
             }
 
             $table->render();
 
-            $output->writeln("<info>  Assets:</info>");
-            foreach ($info['assets'] as $group => $grouped)
-            {
-                $output->writeln("    <comment>{$group}</comment>", "");
-                foreach ($grouped as $asset)
-                {
+            $output->writeln('<info>  Assets:</info>');
+            foreach ($info['assets'] as $group => $grouped) {
+                $output->writeln("    <comment>{$group}</comment>", '');
+                foreach ($grouped as $asset) {
                     $output->writeln("      - {$asset}");
                 }
             }
