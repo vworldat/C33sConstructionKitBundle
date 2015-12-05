@@ -114,7 +114,7 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
     public function getDefaultConfigs($environment = '')
     {
         if (!isset($this->defaultConfigs[$environment])) {
-            $env = ('' === $environment) ? $environment : '.'.$environment;
+            $env = ('' === $environment) ? $environment : '_'.$environment;
             $this->defaultConfigs[$environment] = $this->findFilesInBundleDir('Resources/config/defaults'.$env.'/'.$this->getPathSuffix().'/', '*.yml');
         }
 
@@ -138,7 +138,7 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
     public function getConfigTemplates($environment = '')
     {
         if (!isset($this->configTemplates[$environment])) {
-            $env = '' === $environment ? $environment : '.'.$environment;
+            $env = '' === $environment ? $environment : '_'.$environment;
             $this->configTemplates[$environment] = $this->findFilesInBundleDir('Resources/config/templates'.$env.'/'.$this->getPathSuffix().'/', '*.yml');
         }
 

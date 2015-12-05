@@ -35,14 +35,14 @@ class DebugCommand extends ContainerAwareCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->getBuildingBlockHandler()->debug($output, $input->getArgument('blocks'), $input->getOption('details'));
+        $this->getBuildingBlockDebugger()->debug($output, $input->getArgument('blocks'), $input->getOption('details'));
     }
 
     /**
      * @return BuildingBlockHandler
      */
-    protected function getBuildingBlockHandler()
+    protected function getBuildingBlockDebugger()
     {
-        return $this->getContainer()->get('c33s_construction_kit.building_block_handler');
+        return $this->getContainer()->get('c33s_construction_kit.debugger');
     }
 }

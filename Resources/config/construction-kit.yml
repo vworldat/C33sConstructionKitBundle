@@ -1,13 +1,26 @@
 parameters:
-    c33s_construction_kit.building_block_handler.class: C33s\ConstructionKitBundle\BuildingBlock\BuildingBlockHandler
+    c33s_construction_kit.debugger.class:   C33s\ConstructionKitBundle\Mapping\BuildingBlockDebugger
+    c33s_construction_kit.mapping.class:    C33s\ConstructionKitBundle\Mapping\BuildingBlockMapping
+    c33s_construction_kit.writer.class:     C33s\ConstructionKitBundle\Mapping\MappingWriter
 
 services:
-    c33s_construction_kit.building_block_handler:
-        class: "%c33s_construction_kit.building_block_handler.class%"
+    c33s_construction_kit.mapping:
+        class: "%c33s_construction_kit.mapping.class%"
         arguments:
+            - "%c33s_construction_kit.raw_mapping_data%"
+            - "%c33s_construction_kit.building_blocks.composer%"
+            - "@c33s_symfony_config_manipulator.config_manipulator"
+            - "@logger"
+
+    c33s_construction_kit.debugger:
+        class: "%c33s_construction_kit.debugger.class%"
+        arguments:
+            - "@c33s_construction_kit.mapping"
+
+    c33s_construction_kit.writer:
+        class: "%c33s_construction_kit.writer.class%"
+        arguments:
+            - "@c33s_construction_kit.mapping"
+            - "@c33s_symfony_config_manipulator.config_manipulator"
             - "@kernel"
             - "@logger"
-            - "@c33s_symfony_config_manipulator.config_manipulator"
-            - "%c33s_construction_kit.building_blocks.composer%"
-            - "%c33s_construction_kit.mapping%"
-            - "%c33s_construction_kit.environments%"

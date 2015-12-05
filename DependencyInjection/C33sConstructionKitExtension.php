@@ -26,9 +26,9 @@ class C33sConstructionKitExtension extends Extension implements PrependExtension
         $loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
         $loader->load('construction-kit.yml');
 
+        $emptyMapping = array('building_blocks' => array(), 'assets' => array());
         $container->setParameter('c33s_construction_kit.building_blocks.composer', $config['composer_building_blocks']);
-        $container->setParameter('c33s_construction_kit.mapping', isset($config['mapping']) ? $config['mapping'] : array());
-        $container->setParameter('c33s_construction_kit.environments', $config['config_environments']);
+        $container->setParameter('c33s_construction_kit.raw_mapping_data', isset($config['mapping']) ? $config['mapping'] : $emptyMapping);
     }
 
     public function prepend(ContainerBuilder $container)
@@ -39,8 +39,6 @@ class C33sConstructionKitExtension extends Extension implements PrependExtension
     private function prependAssets(ContainerBuilder $container)
     {
         if (!$container->hasExtension('assetic')) {
-            die('noassetic');
-
             return;
         }
 

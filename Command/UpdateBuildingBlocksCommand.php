@@ -2,11 +2,11 @@
 
 namespace C33s\ConstructionKitBundle\Command;
 
-use C33s\ConstructionKitBundle\BuildingBlock\BuildingBlockHandler;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use C33s\ConstructionKitBundle\Mapping\MappingWriter;
 
 class UpdateBuildingBlocksCommand extends ContainerAwareCommand
 {
@@ -28,18 +28,17 @@ class UpdateBuildingBlocksCommand extends ContainerAwareCommand
     {
         if (OutputInterface::VERBOSITY_NORMAL == $output->getVerbosity()) {
             // enforce verbose output by default
-            //$output->setVerbosity(OutputInterface::VERBOSITY_VERBOSE);
+            $output->setVerbosity(OutputInterface::VERBOSITY_VERBOSE);
         }
 
-        //$this->getContainer()->get('c33s_construction_kit.config_handler')->refresh();
-        $this->getBuildingBlockHandler()->updateBuildingBlocks();
+        $this->getMappingWriter()->updateAndSave($output);
     }
 
     /**
-     * @return BuildingBlockHandler
+     * @return MappingWriter
      */
-    protected function getBuildingBlockHandler()
+    protected function getMappingWriter()
     {
-        return $this->getContainer()->get('c33s_construction_kit.building_block_handler');
+        return $this->getContainer()->get('c33s_construction_kit.writer');
     }
 }

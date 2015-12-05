@@ -19,7 +19,7 @@ class BuildingBlocksPass implements CompilerPassInterface
             return;
         }
 
-        $configuratorDef = $container->findDefinition('c33s_construction_kit.building_block_handler');
+        $configuratorDef = $container->findDefinition('c33s_construction_kit.mapping');
         foreach (array_keys($container->findTaggedServiceIds('c33s_building_block')) as $id) {
             $configuratorDef->addMethodCall('addBuildingBlock', array(new Reference($id), $id));
         }

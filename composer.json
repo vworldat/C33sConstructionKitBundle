@@ -22,7 +22,7 @@
     "require": {
         "php": ">=5.4.0",
         "c33s/composer-construction-kit-installer": "~0.2",
-        "c33s/symfony-config-manipulator-bundle": "~0.1",
+        "c33s/symfony-config-manipulator-bundle": "~0.2",
         "symfony/monolog-bundle": "~2.4",
         "symfony/symfony": "~2.3|~3.0",
         "sensio/generator-bundle": "~2.3|~3.0"
