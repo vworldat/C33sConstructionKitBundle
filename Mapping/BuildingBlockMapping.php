@@ -4,10 +4,10 @@ namespace C33s\ConstructionKitBundle\Mapping;
 
 use C33s\ConstructionKitBundle\BuildingBlock\BuildingBlockInterface;
 use C33s\ConstructionKitBundle\Exception\InvalidBlockClassException;
-use C33s\SymfonyConfigManipulatorBundle\Manipulator\ConfigManipulator;
 use C33s\ConstructionKitBundle\Exception\InvalidBundleClassException;
-use Symfony\Component\HttpKernel\Bundle\BundleInterface;
+use C33s\SymfonyConfigManipulatorBundle\Manipulator\ConfigManipulator;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpKernel\Bundle\BundleInterface;
 
 class BuildingBlockMapping
 {
@@ -41,6 +41,12 @@ class BuildingBlockMapping
      */
     protected $logger;
 
+    /**
+     * @param array             $existingMappingData
+     * @param array             $composerBlockClasses
+     * @param ConfigManipulator $configManipulator
+     * @param LoggerInterface   $logger
+     */
     public function __construct(
         array $existingMappingData,
         array $composerBlockClasses,
@@ -84,6 +90,7 @@ class BuildingBlockMapping
      * @throws InvalidBlockClassException
      *
      * @param string $class
+     *
      * @return BuildingBlockInterface
      */
     public function getBlock($class)
@@ -101,6 +108,7 @@ class BuildingBlockMapping
      * @throws InvalidBlockClassException
      *
      * @param string $class
+     *
      * @return string
      */
     public function getSource($class)
@@ -118,6 +126,7 @@ class BuildingBlockMapping
      * @throws InvalidBundleClassException if block provides invalid bundle names
      *
      * @param BuildingBlockInterface $block
+     *
      * @return array
      */
     public function getBlockInfo(BuildingBlockInterface $block)
@@ -151,6 +160,7 @@ class BuildingBlockMapping
      * Check if the given class name is a valid (and available) Symfony bundle.
      *
      * @throws InvalidBundleClassException
+     *
      * @param string $bundleClass
      */
     protected function checkBundleClass($bundleClass)
@@ -182,6 +192,7 @@ class BuildingBlockMapping
      * Load BuildingBlocks defined by composer.
      *
      * @param array $composerBuildingBlockClasses
+     *
      * @return BuildingBlockInterface[]
      */
     protected function loadComposerBuildingBlocks($composerBuildingBlockClasses)
@@ -215,10 +226,10 @@ class BuildingBlockMapping
     {
         $newMap = array('building_blocks' => array());
 
-        if (!array_key_exists('building_blocks', $this->existingMappingData)) {
+        if (!isset($this->existingMappingData['building_blocks'])) {
             $this->existingMappingData['building_blocks'] = array();
         }
-        if (!array_key_exists('assets', $this->existingMappingData)) {
+        if (!isset($this->existingMappingData['assets'])) {
             $this->existingMappingData['assets'] = array();
         }
 
@@ -231,7 +242,7 @@ class BuildingBlockMapping
                 // This block does not appear in the existing map. Whether to enable it or not can be decided based on its autoInstall result.
                 $newMap['building_blocks'][$class] = array(
                     'enabled' => (boolean) $block->isAutoInstall(),
-                    'init' => true,
+                    'force_init' => true,
                     'use_config' => true,
                     'use_assets' => true,
                 );
@@ -242,40 +253,17 @@ class BuildingBlockMapping
         $newMap['assets'] = $this->existingMappingData['assets'];
 
         foreach ($newMap['building_blocks'] as $class => $settings) {
-            $useAssets = $settings['enabled'] && $settings['use_assets'];
-
             $block = $this->getBlock($class);
             try {
+                // trying to load block just to make sure invalid blocks are not being handled later on
                 $this->getBlockInfo($block);
             } catch (InvalidBundleClassException $e) {
                 $this->logger->warning('Error loading building block information for '.$class.': '.$e->getMessage());
                 continue;
             }
 
-            $assets = $block->getAssets();
-
-            foreach ($assets as $group => $grouped) {
-                if (!array_key_exists($group, $newMap['assets'])) {
-                    $newMap['assets'][$group] = array(
-                        'enabled' => array(),
-                        'disabled' => array(),
-                        'filters' => array(),
-                    );
-                }
-
-                foreach ($grouped as $asset) {
-                    if ($useAssets && !in_array($asset, $newMap['assets'][$group]['enabled']) && !in_array($asset, $newMap['assets'][$group]['disabled'])) {
-                        // append assets that did not appear previously
-                        $newMap['assets'][$group]['enabled'][] = $asset;
-                    } elseif (!$useAssets && in_array($asset, $newMap['assets'][$group]['enabled'])) {
-                        // disable previously defined assets if enabled
-                        $key = array_search($asset, $newMap['assets'][$group]['enabled']);
-                        unset($newMap['assets'][$group]['enabled'][$key]);
-                        $newMap['assets'][$group]['enabled'] = array_values($newMap['assets'][$group]['enabled']);
-                        $newMap['assets'][$group]['disabled'][] = $asset;
-                    }
-                }
-            }
+            $useAssets = $settings['enabled'] && $settings['use_assets'];
+            $newMap['assets'] = $this->organizeAssets($block, $newMap['assets'], $useAssets);
         }
 
         // TODO: detect removed blocks. This is actually a rare edge case since no sane person would remove a composer package without disabling its classes first. *cough*
@@ -283,4 +271,45 @@ class BuildingBlockMapping
         return $newMap;
     }
 
+    /**
+     * Update assets for the given block. New assets (that did not appear previously) will be enabled
+     * if assets for the given block are enabled ($useAssets is true).
+     *
+     * @param BuildingBlockInterface $block
+     * @param array                  $assetsData
+     * @param bool                   $useAssets
+     */
+    protected function organizeAssets(BuildingBlockInterface $block, array $assetsData, $useAssets)
+    {
+        $assets = $block->getAssets();
+
+        foreach ($assets as $group => $grouped) {
+            if (array_key_exists($group, $assetsData)) {
+                $groupData = $assetsData[$group];
+            } else {
+                $groupData = array(
+                    'enabled' => array(),
+                    'disabled' => array(),
+                    'filters' => array(),
+                );
+            }
+
+            foreach ($grouped as $asset) {
+                if ($useAssets && !in_array($asset, $groupData['enabled']) && !in_array($asset, $groupData['disabled'])) {
+                    // append assets that did not appear previously
+                    $groupData['enabled'][] = $asset;
+                } elseif (!$useAssets && in_array($asset, $groupData['enabled'])) {
+                    // disable previously defined assets if enabled
+                    $key = array_search($asset, $groupData['enabled']);
+                    unset($groupData['enabled'][$key]);
+                    $groupData['enabled'] = array_values($groupData['enabled']);
+                    $groupData['disabled'][] = $asset;
+                }
+            }
+
+            $assetsData[$group] = $groupData;
+        }
+
+        return $assetsData;
+    }
 }

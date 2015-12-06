@@ -1,0 +1,12 @@
+imports:
+    - { resource: parameters.yml }
+    - { resource: security.yml }
+    - { resource: services.yml }
+    - { resource: config/assetic.yml }
+    - { resource: config/c33s_construction_kit.composer.yml }
+    - { resource: config/c33s_construction_kit.map.yml }
+    - { resource: config/doctrine.yml }
+    - { resource: config/framework.yml }
+    - { resource: config/parameters.yml }
+    - { resource: config/swiftmailer.yml }
+    - { resource: config/twig.yml }

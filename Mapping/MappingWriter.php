@@ -10,6 +10,9 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Yaml\Yaml;
 
+/**
+ * This class is responsible for updating and storing mapping information.
+ */
 class MappingWriter
 {
     /**
@@ -40,7 +43,6 @@ class MappingWriter
     protected $logger;
 
     /**
-     *
      * @var array
      */
     protected $blocksToEnable = array();
@@ -63,7 +65,7 @@ class MappingWriter
     /**
      * Update mapping information and save to file.
      */
-    public function updateAndSave(OutputInterface $output)
+    public function refresh(OutputInterface $output)
     {
         if (!$this->checkAndEnableConfigFiles()) {
             $message = <<<EOF
@@ -115,7 +117,8 @@ EOF;
 
             if (!$yamlManipulator->importerFileHasFilename($mainConfigFile, $shortFilename)) {
                 $this->logger->warning('  File was not included in main config file, adding '.$shortFilename.' to config.yml');
-                $yamlManipulator->addImportFilenameToImporterFile($mainConfigFile, $shortFilename);
+                $this->configManipulator->enableModuleConfig($module, '');
+                //$yamlManipulator->addImportFilenameToImporterFile($mainConfigFile, $shortFilename);
                 $result = false;
             }
         }
@@ -124,7 +127,7 @@ EOF;
     }
 
     /**
-     * Get mapping data
+     * Get mapping data.
      *
      * @return array
      */
@@ -157,7 +160,7 @@ EOF;
             $block->setKernel($this->kernel);
 
             if ($settings['enabled']) {
-                $bundlesToEnable = array_merge($bundlesToEnable, $this->enableBlock($block, $settings['use_config'], $settings['init']));
+                $bundlesToEnable = array_merge($bundlesToEnable, $this->enableBlock($block, $settings['use_config'], $settings['force_init']));
             } else {
                 $this->disableBlock($block);
             }
@@ -188,8 +191,6 @@ EOF;
      */
     protected function enableBlock(BuildingBlockInterface $block, $useConfig, $init)
     {
-        $info = $this->mapping->getBlockInfo($block);
-
         if ($init) {
             $this->logger->info('Initializing '.get_class($block));
             if ($useConfig) {
@@ -203,6 +204,8 @@ EOF;
             $block->init();
             $this->markAsInitialized($block);
         }
+
+        $info = $this->mapping->getBlockInfo($block);
 
         if ($useConfig) {
             $comment = 'Added by '.get_class($block);
@@ -255,7 +258,7 @@ EOF;
     protected function markAsInitialized(BuildingBlockInterface $block)
     {
         $newMap = $this->getMappingData();
-        $newMap['building_blocks'][get_class($block)]['init'] = false;
+        $newMap['building_blocks'][get_class($block)]['force_init'] = false;
 
         $this->updateMappingData($newMap);
     }
@@ -313,10 +316,10 @@ EOF;
 #     C33s\ConstructionKitBundle\BuildingBlock\ConstructionKitBuildingBlock:
 #         enabled: true
 #
-#     If you enable a block for the first time, make sure the "init" flag is also set
+#     If you enable a block for the first time, make sure the "force_init" flag is also set
 #     C33s\ConstructionKitBundle\BuildingBlock\ConstructionKitBuildingBlock:
 #         enabled: true
-#         init: true
+#         force_init: true
 #
 # [*] "use_config" and "use_assets" flags will only be used if block is enabled. They do not affect disabled blocks.
 #

@@ -1,0 +1,31 @@
+# This file is auto-updated each time construction-kit:update-blocks is called.
+# This may happen automatically during various composer events (install, update)
+#
+# Follow these rules for your maximum building experience:
+#
+# [*] Only edit existing block classes in this file. If you need to add another custom building block class use the
+#     composer extra 'c33s-building-blocks' or register your block as a tagged service (tag 'c33s_building_block').
+#     Make sure your block implements C33s\ConstructionKitBundle\BuildingBlock\BuildingBlockInterface
+#
+# [*] You can enable or disable a full building block by simply setting the "enabled" flag to true or false, e.g.:
+#     C33s\ConstructionKitBundle\BuildingBlock\ConstructionKitBuildingBlock:
+#         enabled: true
+#
+#     If you enable a block for the first time, make sure the "force_init" flag is also set
+#     C33s\ConstructionKitBundle\BuildingBlock\ConstructionKitBuildingBlock:
+#         enabled: true
+#         force_init: true
+#
+# [*] "use_config" and "use_assets" flags will only be used if block is enabled. They do not affect disabled blocks.
+#
+# [*] Asset lists will automatically be filled by all assets of asset-enabled blocks. To exclude specific assets, move them to their
+#     respective "disabled" sections. You may also reorder assets - the order will be preserved.
+#
+# [*] Assets are made available through assetic using the @asset_group notation.
+#
+# [*] Custom YAML comments in this file will be lost!
+#
+c33s_construction_kit:
+    mapping:
+        building_blocks: {  }
+        assets: {  }

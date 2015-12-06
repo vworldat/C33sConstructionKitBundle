@@ -4,7 +4,6 @@ namespace C33s\ConstructionKitBundle\Mapping;
 
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Output\OutputInterface;
-use C33s\ConstructionKitBundle\BuildingBlock\BuildingBlockInterface;
 
 class BuildingBlockDebugger
 {
@@ -22,7 +21,7 @@ class BuildingBlockDebugger
     }
 
     /**
-     * Display ConstructionKit debugging information
+     * Display ConstructionKit debugging information.
      *
      * @param OutputInterface $output
      * @param array           $blockClasses
@@ -46,7 +45,7 @@ class BuildingBlockDebugger
     }
 
     /**
-     * Get existing mapping data
+     * Get existing mapping data.
      *
      * @return array
      */
@@ -56,7 +55,7 @@ class BuildingBlockDebugger
     }
 
     /**
-     * Get updated mapping data (the data that will be present after construction-kit:update-blocks has been executed)
+     * Get updated mapping data (the data that will be present after construction-kit:update-blocks has been executed).
      *
      * @return array
      */
@@ -68,7 +67,6 @@ class BuildingBlockDebugger
     /**
      * Filter given class names that may be incomplete to auto-fill full class names.
      *
-     * @param array $newMap
      * @param array $blockClasses
      *
      * @return array
@@ -108,7 +106,13 @@ class BuildingBlockDebugger
         return $filtered;
     }
 
-    protected function doDebug($mappingData, OutputInterface $output, array $blockClasses = array(), $showDetails = false)
+    /**
+     * @param array           $mappingData
+     * @param OutputInterface $output
+     * @param array           $blockClasses
+     * @param string          $showDetails
+     */
+    protected function doDebug(array $mappingData, OutputInterface $output, array $blockClasses = array(), $showDetails = false)
     {
         $output->writeln("\n<info>Building blocks overview</info>");
         $table = new Table($output);
@@ -144,57 +148,66 @@ class BuildingBlockDebugger
             $blockClasses = array_keys($mappingData['building_blocks']);
         }
 
-        if (!$showDetails) {
-            return;
+        if ($showDetails) {
+            foreach ($blockClasses as $class) {
+                $this->doDebugClassDetails($output, $class);
+            }
+        }
+    }
+
+    /**
+     * Render detailed information for the given building block class.
+     *
+     * @param OutputInterface $output
+     * @param string          $class
+     */
+    protected function doDebugClassDetails(OutputInterface $output, $class)
+    {
+        $block = $this->mapping->getBlock($class);
+        $info = $this->mapping->getBlockInfo($block);
+
+        $output->writeln("\n<fg=cyan>{$class}:</fg=cyan>");
+
+        $output->writeln('<info>  Bundles:</info>');
+        $first = true;
+        foreach ($info['bundle_classes'] as $bundle) {
+            if ($first) {
+                $output->writeln("    - <options=bold>{$bundle}</options=bold>");
+                $first = false;
+            } else {
+                $output->writeln("    - $bundle");
+            }
         }
 
-        foreach ($blockClasses as $class) {
-            $block = $this->mapping->getBlock($class);
-            $info = $this->mapping->getBlockInfo($block);
-
-            $output->writeln("\n<fg=cyan>{$class}:</fg=cyan>");
-
-            $output->writeln('<info>  Bundles:</info>');
-            $first = true;
-            foreach ($info['bundle_classes'] as $bundle) {
-                if ($first) {
-                    $output->writeln("    - <options=bold>{$bundle}</options=bold>");
-                    $first = false;
-                } else {
-                    $output->writeln("    - $bundle");
-                }
+        $table = new Table($output);
+        $table->setStyle('compact');
+        $table->addRow(array('<info> Application config:</info>', ''));
+        foreach ($info['config_templates'] as $env => $templates) {
+            ksort($templates);
+            $configPath = ('' == $env) ? 'config' : "config<options=bold>.$env</options=bold>";
+            foreach ($templates as $relative => $template) {
+                $base = basename($template);
+                $table->addRow(array("   - {$configPath}/{$base}", '  '.$relative));
             }
+        }
 
-            $table = new Table($output);
-            $table->setStyle('compact');
-            $table->addRow(array('<info> Application config:</info>', ''));
-            foreach ($info['config_templates'] as $env => $templates) {
-                ksort($templates);
-                $configPath = ('' == $env) ? 'config' : "config<options=bold>.$env</options=bold>";
-                foreach ($templates as $relative => $template) {
-                    $base = basename($template);
-                    $table->addRow(array("   - {$configPath}/{$base}", '  '.$relative));
-                }
+        $table->addRow(array('<info> Default config:</info>', ''));
+        foreach ($info['default_configs'] as $env => $defaults) {
+            ksort($defaults);
+            $configPath = ('' == $env) ? 'config' : "config<options=bold>.$env</options=bold>";
+            foreach ($defaults as $relative => $default) {
+                $base = basename($default);
+                $table->addRow(array("   - {$configPath}/{$base}", '  '.$relative));
             }
+        }
 
-            $table->addRow(array('<info> Default config:</info>', ''));
-            foreach ($info['default_configs'] as $env => $defaults) {
-                ksort($defaults);
-                $configPath = ('' == $env) ? 'config' : "config<options=bold>.$env</options=bold>";
-                foreach ($defaults as $relative => $default) {
-                    $base = basename($default);
-                    $table->addRow(array("   - {$configPath}/{$base}", '  '.$relative));
-                }
-            }
+        $table->render();
 
-            $table->render();
-
-            $output->writeln('<info>  Assets:</info>');
-            foreach ($info['assets'] as $group => $grouped) {
-                $output->writeln("    <comment>{$group}</comment>", '');
-                foreach ($grouped as $asset) {
-                    $output->writeln("      - {$asset}");
-                }
+        $output->writeln('<info>  Assets:</info>');
+        foreach ($info['assets'] as $group => $grouped) {
+            $output->writeln("    <comment>{$group}</comment>", '');
+            foreach ($grouped as $asset) {
+                $output->writeln("      - {$asset}");
             }
         }
     }

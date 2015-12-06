@@ -1,0 +1,7 @@
+# This file was auto-generated based on @C33sSymfonyConfigManipulatorBundle/Resources/config/defaults/c33s_symfony_config_manipulator.yml
+# Feel free to change anything you have to.
+
+#c33s_symfony_config_manipulator:
+#    # These environments will be checked for splittable configuration
+#    environments:   [ '', 'prod', 'dev', 'test' ]
+#

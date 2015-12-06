@@ -49,7 +49,7 @@ class Configuration implements ConfigurationInterface
                             ->prototype('array')
                                 ->canBeEnabled()
                                 ->children()
-                                    ->booleanNode('init')
+                                    ->booleanNode('force_init')
                                         ->defaultValue(true)
                                     ->end()
                                     ->booleanNode('use_config')

@@ -1,0 +1,3 @@
+imports:
+    - { resource: '@C33sConstructionKitBundle/Resources/config/defaults/c33s_construction_kit.yml' }
+    - { resource: '@C33sSymfonyConfigManipulatorBundle/Resources/config/defaults/c33s_symfony_config_manipulator.yml' }
