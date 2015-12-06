@@ -1,4 +1,4 @@
-# This file is auto-updated each time construction-kit:update-blocks is called.
+# This file is auto-updated each time construction-kit:refresh is called.
 # This may happen automatically during various composer events (install, update)
 #
 # Follow these rules for your maximum building experience:

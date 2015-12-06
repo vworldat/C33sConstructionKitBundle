@@ -36,10 +36,10 @@ class BuildingBlockDebugger
         if ($existing === $updated) {
             $this->doDebug($existing, $output, $blockClasses, $showDetails);
         } else {
-            $output->writeln("\n<comment>Blocks config needs an update. Consider running construction-kit:update-blocks</comment>");
+            $output->writeln("\n<comment>Blocks config needs an update. Consider running construction-kit:refresh</comment>");
             $output->writeln("\n<info>EXISTING CONFIGURATION</info>");
             $this->doDebug($existing, $output, $blockClasses, $showDetails);
-            $output->writeln("\n<info>NEW CONFIGURATION AFTER construction-kit:update-blocks</info>");
+            $output->writeln("\n<info>NEW CONFIGURATION AFTER construction-kit:refresh</info>");
             $this->doDebug($updated, $output, $blockClasses, $showDetails);
         }
     }
@@ -55,7 +55,7 @@ class BuildingBlockDebugger
     }
 
     /**
-     * Get updated mapping data (the data that will be present after construction-kit:update-blocks has been executed).
+     * Get updated mapping data (the data that will be present after construction-kit:refresh has been executed).
      *
      * @return array
      */

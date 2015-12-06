@@ -70,13 +70,13 @@ class MappingWriter
         if (!$this->checkAndEnableConfigFiles()) {
             $message = <<<EOF
 
-    ############################################################
-    #                                                          #
-    # The symfony configuration has been changed.              #
-    #                                                          #
-    # Please re-run the construction-kit:update-blocks command #
-    #                                                          #
-    ############################################################
+    ######################################################
+    #                                                    #
+    # The symfony configuration has been changed.        #
+    #                                                    #
+    # Please re-run the construction-kit:refresh command #
+    #                                                    #
+    ######################################################
 
 EOF;
             $output->writeln($message);
@@ -303,7 +303,7 @@ EOF;
         );
 
         $content = <<<EOF
-# This file is auto-updated each time construction-kit:update-blocks is called.
+# This file is auto-updated each time construction-kit:refresh is called.
 # This may happen automatically during various composer events (install, update)
 #
 # Follow these rules for your maximum building experience:
