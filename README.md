@@ -2,6 +2,7 @@ Enable rapid configuration of Symfony2 project dependencies
 ===========================================================
 
 [![Build Status](https://travis-ci.org/vworldat/C33sConstructionKitBundle.svg)](https://travis-ci.org/vworldat/C33sConstructionKitBundle)
+[![SensioLabsInsight](https://insight.sensiolabs.com/projects/afd9bbaa-3109-4fba-bf9b-d6b498bc62f6/mini.png)](https://insight.sensiolabs.com/projects/afd9bbaa-3109-4fba-bf9b-d6b498bc62f6)
 [![codecov.io](http://codecov.io/github/vworldat/C33sConstructionKitBundle/coverage.svg?branch=master)](http://codecov.io/github/vworldat/C33sConstructionKitBundle?branch=master)
 
 Is this for me?

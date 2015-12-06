@@ -118,7 +118,6 @@ EOF;
             if (!$yamlManipulator->importerFileHasFilename($mainConfigFile, $shortFilename)) {
                 $this->logger->warning('  File was not included in main config file, adding '.$shortFilename.' to config.yml');
                 $this->configManipulator->enableModuleConfig($module, '');
-                //$yamlManipulator->addImportFilenameToImporterFile($mainConfigFile, $shortFilename);
                 $result = false;
             }
         }
@@ -172,7 +171,7 @@ EOF;
 
     /**
      * Disable a previously enabled building block.
-     * TODO: ask user whether to remove class and config.
+     * This is not implemented yet. Please feel free to provide ideas how to accomplish this.
      *
      * @param BuildingBlockInterface $block
      */

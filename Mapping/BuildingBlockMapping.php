@@ -7,7 +7,6 @@ use C33s\ConstructionKitBundle\Exception\InvalidBlockClassException;
 use C33s\ConstructionKitBundle\Exception\InvalidBundleClassException;
 use C33s\SymfonyConfigManipulatorBundle\Manipulator\ConfigManipulator;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpKernel\Bundle\BundleInterface;
 
 class BuildingBlockMapping
 {
@@ -265,8 +264,6 @@ class BuildingBlockMapping
             $useAssets = $settings['enabled'] && $settings['use_assets'];
             $newMap['assets'] = $this->organizeAssets($block, $newMap['assets'], $useAssets);
         }
-
-        // TODO: detect removed blocks. This is actually a rare edge case since no sane person would remove a composer package without disabling its classes first. *cough*
 
         return $newMap;
     }

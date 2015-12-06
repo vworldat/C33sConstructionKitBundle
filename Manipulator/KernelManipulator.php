@@ -76,7 +76,7 @@ class KernelManipulator extends Manipulator
                     continue;
                 }
 
-                // ;
+                // we have reached ";"
                 $this->next();
 
                 $lines = array_merge(
