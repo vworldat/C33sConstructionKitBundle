@@ -107,6 +107,10 @@ interface BuildingBlockInterface
 
     /**
      * Run any arbitrary code during first-time initialization of this block.
+     * Input and Output options may be used for user interaction.
+     *
+     * @param InputInterface  $input
+     * @param OutputInterface $output
      */
-    public function init();
+    public function init(InputInterface $input, OutputInterface $output);
 }

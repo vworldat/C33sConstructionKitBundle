@@ -31,7 +31,7 @@ class RefreshBuildingBlocksCommand extends ContainerAwareCommand
             $output->setVerbosity(OutputInterface::VERBOSITY_VERBOSE);
         }
 
-        $this->getMappingWriter()->refresh($output);
+        $this->getMappingWriter()->refresh($input, $output);
     }
 
     /**

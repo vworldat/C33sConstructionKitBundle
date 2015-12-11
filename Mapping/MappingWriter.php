@@ -6,6 +6,7 @@ use C33s\ConstructionKitBundle\BuildingBlock\BuildingBlockInterface;
 use C33s\ConstructionKitBundle\Manipulator\KernelManipulator;
 use C33s\SymfonyConfigManipulatorBundle\Manipulator\ConfigManipulator;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Yaml\Yaml;
@@ -64,8 +65,11 @@ class MappingWriter
 
     /**
      * Update mapping information and save to file.
+     *
+     * @param InputInterface  $input
+     * @param OutputInterface $output
      */
-    public function refresh(OutputInterface $output)
+    public function refresh(InputInterface $input, OutputInterface $output)
     {
         if (!$this->checkAndEnableConfigFiles()) {
             $message = <<<EOF
@@ -84,7 +88,7 @@ EOF;
             return;
         }
 
-        $this->toggleBlocks();
+        $this->toggleBlocks($input, $output);
         $this->saveBlocksMap();
     }
 
@@ -149,7 +153,13 @@ EOF;
         return '_building_block_defaults';
     }
 
-    protected function toggleBlocks()
+    /**
+     * Enable or disable blocks based on configuration.
+     *
+     * @param InputInterface  $input
+     * @param OutputInterface $output
+     */
+    protected function toggleBlocks(InputInterface $input, OutputInterface $output)
     {
         $newMap = $this->getMappingData();
 
@@ -159,7 +169,13 @@ EOF;
             $block->setKernel($this->kernel);
 
             if ($settings['enabled']) {
-                $bundlesToEnable = array_merge($bundlesToEnable, $this->enableBlock($block, $settings['use_config'], $settings['force_init']));
+                $bundlesToEnable = array_merge($bundlesToEnable, $this->enableBlock(
+                    $block,
+                    $settings['use_config'],
+                    $settings['force_init'],
+                    $input,
+                    $output
+                ));
             } else {
                 $this->disableBlock($block);
             }
@@ -188,8 +204,13 @@ EOF;
      *
      * @return array List of bundles to enable for this block
      */
-    protected function enableBlock(BuildingBlockInterface $block, $useConfig, $init)
-    {
+    protected function enableBlock(
+        BuildingBlockInterface $block,
+        $useConfig,
+        $init,
+        InputInterface $input,
+        OutputInterface $output
+    ) {
         if ($init) {
             $this->logger->info('Initializing '.get_class($block));
             if ($useConfig) {
@@ -200,7 +221,7 @@ EOF;
                 }
             }
 
-            $block->init();
+            $block->init($input, $output);
             $this->markAsInitialized($block);
         }
 

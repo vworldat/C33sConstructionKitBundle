@@ -2,6 +2,8 @@
 
 namespace C33s\ConstructionKitBundle\BuildingBlock;
 
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 use Symfony\Component\HttpKernel\Bundle\BundleInterface;
@@ -207,7 +209,7 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
     }
 
     /**
-     * Find assets in Resources/public and Resources/non-public + path suffix.
+     * Find assets in Resources/public and Resources/private + path suffix.
      *
      * @return array
      */
@@ -215,7 +217,7 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
     {
         $searchIn = array(
             'Resources/public/'.$this->getPathSuffix().'/',
-            'Resources/non-public/'.$this->getPathSuffix().'/',
+            'Resources/private/'.$this->getPathSuffix().'/',
         );
 
         $baseDir = $this->getMainBundleDir();
@@ -313,8 +315,12 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
 
     /**
      * Run any arbitrary code during first-time initialization of this block.
+     * Input and Output options may be used for user interaction.
+     *
+     * @param InputInterface  $input
+     * @param OutputInterface $output
      */
-    public function init()
+    public function init(InputInterface $input, OutputInterface $output)
     {
     }
 }
