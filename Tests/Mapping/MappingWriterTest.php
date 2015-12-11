@@ -12,6 +12,7 @@ use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Yaml\Yaml;
+use Symfony\Component\Console\Input\ArrayInput;
 
 class MappingWriterTest extends BaseTestCase
 {
@@ -42,8 +43,9 @@ class MappingWriterTest extends BaseTestCase
 
         $writer = $this->getMappingWriter($kernel);
 
+        $input = new ArrayInput(array());
         $output = new NullOutput();
-        $writer->refresh($output);
+        $writer->refresh($input, $output);
 
         $this->assertDirectoriesAreEqual($sourceDir.'/expected', $this->tempDir);
     }
