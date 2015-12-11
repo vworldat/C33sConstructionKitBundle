@@ -209,15 +209,15 @@ abstract class SimpleBuildingBlock implements BuildingBlockInterface
     }
 
     /**
-     * Find assets in Resources/public and Resources/private + path suffix.
+     * Find assets in Resources/public/assets and Resources/private/assets + path suffix.
      *
      * @return array
      */
     protected function findAssets()
     {
         $searchIn = array(
-            'Resources/public/'.$this->getPathSuffix().'/',
-            'Resources/private/'.$this->getPathSuffix().'/',
+            'Resources/public/assets/'.$this->getPathSuffix().'/',
+            'Resources/private/assets/'.$this->getPathSuffix().'/',
         );
 
         $baseDir = $this->getMainBundleDir();
